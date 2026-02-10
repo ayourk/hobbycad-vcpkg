@@ -1,0 +1,8 @@
+# Build artifacts
+buildtrees/
+downloads/
+installed/
+packages/
+
+# Source tarballs (uploaded as GitHub release assets, not committed)
+sources/*.tar.gz

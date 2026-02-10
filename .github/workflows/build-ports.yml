@@ -1,0 +1,70 @@
+# .github/workflows/build-ports.yml
+#
+# Test-build all ports in this registry on Windows to catch
+# broken portfiles before anyone tries to use them.
+#
+# Uses vcpkg overlay ports (--overlay-ports) rather than the
+# registry mechanism, since the registry's git-tree hashes
+# won't be updated until after the commit we're testing.
+
+name: Build Ports
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'ports/**'
+      - '.github/workflows/build-ports.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'ports/**'
+  workflow_dispatch:  # Allow manual trigger
+
+jobs:
+  build-windows:
+    name: "Build: ${{ matrix.port }} (${{ matrix.triplet }})"
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        port: [libslvs, openmesh, lib3mf, meshfix]
+        triplet: [x64-windows]
+
+    env:
+      VCPKG_ROOT: C:\vcpkg
+      VCPKG_DEFAULT_TRIPLET: ${{ matrix.triplet }}
+
+    steps:
+      - name: Checkout registry
+        uses: actions/checkout@v4
+
+      - name: Bootstrap vcpkg
+        shell: cmd
+        run: |
+          git clone --depth 1 https://github.com/microsoft/vcpkg.git %VCPKG_ROOT%
+          call %VCPKG_ROOT%\bootstrap-vcpkg.bat -disableMetrics
+
+      - name: Build port
+        shell: cmd
+        run: >
+          %VCPKG_ROOT%\vcpkg install ${{ matrix.port }}:${{ matrix.triplet }}
+          --overlay-ports="%GITHUB_WORKSPACE%\ports"
+
+      - name: Verify install
+        shell: cmd
+        run: "%VCPKG_ROOT%\\vcpkg list"
+
+  build-summary:
+    name: All ports
+    runs-on: ubuntu-latest
+    needs: build-windows
+    if: always()
+    steps:
+      - name: Check results
+        run: |
+          if [ "${{ needs.build-windows.result }}" != "success" ]; then
+            echo "::error::One or more ports failed to build"
+            exit 1
+          fi
+          echo "All ports built successfully"

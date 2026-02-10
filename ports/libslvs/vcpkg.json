@@ -1,0 +1,19 @@
+{
+  "name": "libslvs",
+  "version": "3.2",
+  "port-version": 0,
+  "description": "SolveSpace geometric constraint solver library",
+  "homepage": "https://github.com/solvespace/solvespace",
+  "license": "GPL-3.0-only",
+  "supports": "!uwp",
+  "dependencies": [
+    {
+      "name": "vcpkg-cmake",
+      "host": true
+    },
+    {
+      "name": "vcpkg-cmake-config",
+      "host": true
+    }
+  ]
+}
