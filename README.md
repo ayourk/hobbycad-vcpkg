@@ -57,10 +57,10 @@ Each port downloads source tarballs hosted as release assets on this repo
 
 | Port | Upstream | Source Archive |
 |---|---|---|
-| `libslvs` | [solvespace/solvespace](https://github.com/solvespace/solvespace) @ `02ec4e5` | `libslvs_3.2.git~20260208.orig.tar.gz` |
-| `openmesh` | [OpenMesh/OpenMesh](https://gitlab.vci.rwth-aachen.de:9000/OpenMesh/OpenMesh) @ `OpenMesh-11.0.0` | `libopenmesh_11.0.0.git~20260208.orig.tar.gz` |
-| `lib3mf` | [3MFConsortium/lib3mf](https://github.com/3MFConsortium/lib3mf) @ `v2.4.1` | `lib3mf_2.4.1.git~20260208.orig.tar.gz` |
-| `meshfix` | [MarcoAttene/MeshFix-V2.1](https://github.com/MarcoAttene/MeshFix-V2.1) @ `6dd727b` | `meshfix_2.1.git~20260208.orig.tar.gz` |
+| `libslvs` | [solvespace/solvespace](https://github.com/solvespace/solvespace) @ `02ec4e5` | `libslvs_3.2.git.20260208.orig.tar.gz` |
+| `openmesh` | [OpenMesh/OpenMesh](https://gitlab.vci.rwth-aachen.de:9000/OpenMesh/OpenMesh) @ `OpenMesh-11.0.0` | `libopenmesh_11.0.0.git.20260208.orig.tar.gz` |
+| `lib3mf` | [3MFConsortium/lib3mf](https://github.com/3MFConsortium/lib3mf) @ `v2.4.1` | `lib3mf_2.4.1.git.20260208.orig.tar.gz` |
+| `meshfix` | [MarcoAttene/MeshFix-V2.1](https://github.com/MarcoAttene/MeshFix-V2.1) @ `6dd727b` | `meshfix_2.1.git.20260208.orig.tar.gz` |
 
 ### Updating source archives
 

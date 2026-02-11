@@ -6,8 +6,8 @@ set(VERSION 2.1)
 
 vcpkg_download_distfile(ARCHIVE
     URLS
-        "https://github.com/ayourk/hobbycad-vcpkg/releases/download/sources/meshfix_${VERSION}.git~20260208.orig.tar.gz"
-    FILENAME "meshfix_${VERSION}.git~20260208.orig.tar.gz"
+        "https://github.com/ayourk/hobbycad-vcpkg/releases/download/sources/meshfix_${VERSION}.git.20260208.orig.tar.gz"
+    FILENAME "meshfix_${VERSION}.git.20260208.orig.tar.gz"
     SHA512 89c90a230cd4ea73289c5e2a95ebb0df943da34982edaa005333388ff9c2378cedafbaba6cafa375ecb64519b593f3557661a441fe3df104af697f811d7ec578
 )
 

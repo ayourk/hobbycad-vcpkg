@@ -6,8 +6,8 @@ set(VERSION 3.2)
 
 vcpkg_download_distfile(ARCHIVE
     URLS
-        "https://github.com/ayourk/hobbycad-vcpkg/releases/download/sources/libslvs_${VERSION}.git~20260208.orig.tar.gz"
-    FILENAME "libslvs_${VERSION}.git~20260208.orig.tar.gz"
+        "https://github.com/ayourk/hobbycad-vcpkg/releases/download/sources/libslvs_${VERSION}.git.20260208.orig.tar.gz"
+    FILENAME "libslvs_${VERSION}.git.20260208.orig.tar.gz"
     SHA512 a95c2dbb7af60e1a172fdedf26a0e5de5ebfe8ebf16cc0e4933c3dcc28c537873620703a78ea0af3b2df14e96d406dfe2565f9fe9a078621c67a1e7e40debcbe
 )
 

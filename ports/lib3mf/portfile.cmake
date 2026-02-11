@@ -6,8 +6,8 @@ set(VERSION 2.4.1)
 
 vcpkg_download_distfile(ARCHIVE
     URLS
-        "https://github.com/ayourk/hobbycad-vcpkg/releases/download/sources/lib3mf_${VERSION}.git~20260208.orig.tar.gz"
-    FILENAME "lib3mf_${VERSION}.git~20260208.orig.tar.gz"
+        "https://github.com/ayourk/hobbycad-vcpkg/releases/download/sources/lib3mf_${VERSION}.git.20260208.orig.tar.gz"
+    FILENAME "lib3mf_${VERSION}.git.20260208.orig.tar.gz"
     SHA512 8a840b9441c8f6f50b7a3b59d7606287ca4907d42781e2bba749f8eb2cee820db40f7c9e852c1d5dcc1275dcbae518d10648d0963caf81129b6fa90e1ddd72e6
 )
 
