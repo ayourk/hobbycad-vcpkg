@@ -70,9 +70,22 @@ endmacro()
 
 file(WRITE "${SOURCE_PATH}/cmake/FindVendoredPackage.cmake"
 "# Neutralized by vcpkg portfile — deps provided by vcpkg packages.
-# Skip vendored fallback; use system/vcpkg packages only.
 macro(find_vendored_package VENDORED_PKG_NAME VENDORED_PKG_DIR)
     find_package(\${VENDORED_PKG_NAME} QUIET)
+    # Map vcpkg targets to vendored target names expected by SolveSpace
+    if(\"\${VENDORED_PKG_NAME}\" STREQUAL \"ZLIB\" AND TARGET ZLIB::ZLIB AND NOT TARGET zlibstatic)
+        add_library(zlibstatic INTERFACE IMPORTED)
+        set_target_properties(zlibstatic PROPERTIES INTERFACE_LINK_LIBRARIES ZLIB::ZLIB)
+    endif()
+    if(\"\${VENDORED_PKG_NAME}\" STREQUAL \"Cairo\" AND NOT TARGET cairo)
+        find_library(_CAIRO_LIB NAMES cairo cairo-2)
+        if(_CAIRO_LIB)
+            add_library(cairo UNKNOWN IMPORTED)
+            set_target_properties(cairo PROPERTIES IMPORTED_LOCATION \"\${_CAIRO_LIB}\")
+        else()
+            add_library(cairo INTERFACE IMPORTED)
+        endif()
+    endif()
 endmacro()
 ")
 
@@ -85,12 +98,12 @@ file(WRITE "${SOURCE_PATH}/CMakeLists.txt" "${_cmakelists}")
 vcpkg_cmake_configure(
     SOURCE_PATH "${SOURCE_PATH}"
     OPTIONS
-        -DBUILD_LIB=ON
-        -DBUILD_GUI=OFF
-        -DBUILD_CLI=OFF
         -DENABLE_GUI=OFF
+        -DENABLE_CLI=OFF
         -DENABLE_OPENMP=OFF
         -DENABLE_TESTS=OFF
+    MAYBE_UNUSED_VARIABLES
+        ENABLE_CLI
 )
 
 vcpkg_cmake_install()
