@@ -107,6 +107,12 @@ vcpkg_cmake_configure(
 )
 
 vcpkg_cmake_install()
+
+# Guard: debug cmake config may not be installed
+if(NOT EXISTS "${CURRENT_PACKAGES_DIR}/debug/lib/cmake/slvs")
+    file(MAKE_DIRECTORY "${CURRENT_PACKAGES_DIR}/debug/lib/cmake/slvs")
+endif()
+
 vcpkg_cmake_config_fixup(CONFIG_PATH lib/cmake/slvs)
 vcpkg_fixup_pkgconfig()
 
