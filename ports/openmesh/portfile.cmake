@@ -35,6 +35,16 @@ if(NOT EXISTS "${CURRENT_PACKAGES_DIR}/debug/lib/cmake/OpenMesh")
 endif()
 
 vcpkg_cmake_config_fixup(PACKAGE_NAME OpenMesh CONFIG_PATH lib/cmake/OpenMesh)
+
+# OpenMesh installs pkgconfig to libdata/pkgconfig/ on some platforms
+if(EXISTS "${CURRENT_PACKAGES_DIR}/libdata/pkgconfig")
+    file(RENAME "${CURRENT_PACKAGES_DIR}/libdata/pkgconfig" "${CURRENT_PACKAGES_DIR}/lib/pkgconfig")
+    file(REMOVE_RECURSE "${CURRENT_PACKAGES_DIR}/libdata")
+endif()
+if(EXISTS "${CURRENT_PACKAGES_DIR}/debug/libdata/pkgconfig")
+    file(RENAME "${CURRENT_PACKAGES_DIR}/debug/libdata/pkgconfig" "${CURRENT_PACKAGES_DIR}/debug/lib/pkgconfig")
+    file(REMOVE_RECURSE "${CURRENT_PACKAGES_DIR}/debug/libdata")
+endif()
 vcpkg_fixup_pkgconfig()
 
 file(REMOVE_RECURSE "${CURRENT_PACKAGES_DIR}/debug/include")

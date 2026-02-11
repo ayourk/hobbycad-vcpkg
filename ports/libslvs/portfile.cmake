@@ -64,6 +64,7 @@ vcpkg_cmake_configure(
         -DENABLE_GUI=OFF
         -DENABLE_OPENMP=OFF
         -DENABLE_TESTS=OFF
+        -DEIGEN3_INCLUDE_DIR=${CURRENT_INSTALLED_DIR}/include/eigen3
 )
 
 vcpkg_cmake_install()
