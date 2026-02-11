@@ -15,6 +15,10 @@
       "name": "vcpkg-cmake-config",
       "host": true
     },
-    "eigen3"
+    "eigen3",
+    "zlib",
+    "libpng",
+    "freetype",
+    "cairo"
   ]
 }
