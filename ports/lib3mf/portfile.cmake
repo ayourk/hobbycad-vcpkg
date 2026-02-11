@@ -20,7 +20,7 @@ vcpkg_cmake_configure(
     SOURCE_PATH "${SOURCE_PATH}"
     OPTIONS
         -DLIB3MF_TESTS=OFF
-        -DUSE_INCLUDED_ZLIB=OFF
+        -DUSE_INCLUDED_ZLIB=ON
 )
 
 vcpkg_cmake_install()

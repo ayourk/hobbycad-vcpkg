@@ -11,30 +11,34 @@ Custom vcpkg registry for [HobbyCAD](https://github.com/ayourk/hobbycad) depende
 | `libslvs` | 3.2 | GPL 3.0 | SolveSpace constraint solver library |
 | `openmesh` | 11.0.0 | BSD 3-Clause | OpenMesh polygon mesh data structure |
 | `lib3mf` | 2.4.1 | BSD 2-Clause | 3MF file format reading/writing library |
-| `meshfix` | 2.1 | GPL 2.0 | Mesh repair tool and library |
+| `meshfix` | 2.1 | GPL 3.0+ | Mesh repair tool and library |
 
 ## Usage
 
-Add this registry to your project's `vcpkg-configuration.json`:
+HobbyCAD already includes `vcpkg-configuration.json` and `vcpkg.json` in its
+repository root — no manual setup is needed. The registry is resolved
+automatically when building with the vcpkg toolchain.
+
+For other projects, add this registry to your `vcpkg-configuration.json`:
 
 ```json
 {
   "default-registry": {
     "kind": "builtin",
-    "baseline": "VCPKG_BUILTIN_BASELINE"
+    "baseline": "2026.01.16"
   },
   "registries": [
     {
       "kind": "git",
       "repository": "https://github.com/ayourk/hobbycad-vcpkg",
-      "baseline": "REPLACE_WITH_COMMIT_HASH",
+      "baseline": "REPLACE_WITH_LATEST_COMMIT_HASH",
       "packages": ["libslvs", "openmesh", "lib3mf", "meshfix"]
     }
   ]
 }
 ```
 
-Replace `REPLACE_WITH_COMMIT_HASH` with the latest commit hash from this registry's `main` branch.
+Update the `baseline` hash after each commit to this registry.
 
 Then reference the ports in your `vcpkg.json`:
 

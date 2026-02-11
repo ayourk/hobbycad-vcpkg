@@ -28,9 +28,16 @@ vcpkg_cmake_configure(
 )
 
 vcpkg_cmake_install()
-vcpkg_cmake_config_fixup(CONFIG_PATH lib/cmake/OpenMesh)
+
+# OpenMesh may not install CMake config files for debug builds
+if(NOT EXISTS "${CURRENT_PACKAGES_DIR}/debug/lib/cmake/OpenMesh")
+    file(MAKE_DIRECTORY "${CURRENT_PACKAGES_DIR}/debug/lib/cmake/OpenMesh")
+endif()
+
+vcpkg_cmake_config_fixup(PACKAGE_NAME OpenMesh CONFIG_PATH lib/cmake/OpenMesh)
 vcpkg_fixup_pkgconfig()
 
 file(REMOVE_RECURSE "${CURRENT_PACKAGES_DIR}/debug/include")
+file(REMOVE_RECURSE "${CURRENT_PACKAGES_DIR}/debug/share")
 
 vcpkg_install_copyright(FILE_LIST "${SOURCE_PATH}/LICENSE")
