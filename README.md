@@ -38,7 +38,10 @@ For other projects, add this registry to your `vcpkg-configuration.json`:
 }
 ```
 
-Update the `baseline` hash after each commit to this registry.
+Update the `baseline` hash after each commit to this registry.  To get the
+latest commit hash, visit the
+[commit history](https://github.com/ayourk/hobbycad-vcpkg/commits/main) and
+copy the full 40-character SHA from the latest entry.
 
 Then reference the ports in your `vcpkg.json`:
 

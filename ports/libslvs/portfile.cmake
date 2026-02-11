@@ -44,7 +44,16 @@ file(GLOB _png_hdrs "${CURRENT_INSTALLED_DIR}/include/png.h" "${CURRENT_INSTALLE
 file(COPY ${_png_hdrs} DESTINATION "${SOURCE_PATH}/extlib/libpng")
 
 # freetype — extlib/freetype/include/...
-file(COPY "${CURRENT_INSTALLED_DIR}/include/freetype2/" DESTINATION "${SOURCE_PATH}/extlib/freetype/include")
+# vcpkg freetype may install to include/freetype2/ or include/
+if(IS_DIRECTORY "${CURRENT_INSTALLED_DIR}/include/freetype2")
+    file(COPY "${CURRENT_INSTALLED_DIR}/include/freetype2/" DESTINATION "${SOURCE_PATH}/extlib/freetype/include")
+else()
+    file(MAKE_DIRECTORY "${SOURCE_PATH}/extlib/freetype/include")
+    file(GLOB _ft_items "${CURRENT_INSTALLED_DIR}/include/freetype/*" "${CURRENT_INSTALLED_DIR}/include/ft2build.h")
+    if(_ft_items)
+        file(COPY ${_ft_items} DESTINATION "${SOURCE_PATH}/extlib/freetype/include")
+    endif()
+endif()
 
 # cairo — extlib/cairo/src/cairo.h etc.
 file(GLOB _cairo_hdrs "${CURRENT_INSTALLED_DIR}/include/cairo/*")
