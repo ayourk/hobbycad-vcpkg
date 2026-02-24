@@ -93,6 +93,9 @@ endmacro()
 #    (zlibstatic, png_static, etc.) which no longer exist.
 file(READ "${SOURCE_PATH}/CMakeLists.txt" _cmakelists)
 string(REPLACE "add_library(ZLIB::ZLIB" "# add_library(ZLIB::ZLIB" _cmakelists "${_cmakelists}")
+# Override solvespace's set(CMAKE_CXX_STANDARD 11) — the -D flag cannot
+# override a normal variable, so we must patch the source directly
+string(REPLACE "set(CMAKE_CXX_STANDARD 11)" "set(CMAKE_CXX_STANDARD 14)" _cmakelists "${_cmakelists}")
 file(WRITE "${SOURCE_PATH}/CMakeLists.txt" "${_cmakelists}")
 
 vcpkg_cmake_configure(
