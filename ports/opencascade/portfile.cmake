@@ -1,18 +1,22 @@
-# vcpkg-overlay-ports/opencascade/portfile.cmake
-#
-# Overlay port for OpenCASCADE 7.9.2.
-#
-# SETUP:
-#   Pass --overlay-ports=vcpkg-overlay-ports to vcpkg install,
-#   or set VCPKG_OVERLAY_PORTS in vcpkg-configuration.json.
-#
+# OpenCASCADE Technology (OCCT) — 3D surface and solid modeling
+# Upstream: https://dev.opencascade.org/
 
-vcpkg_from_github(
-    OUT_SOURCE_PATH SOURCE_PATH
-    REPO Open-Cascade-SAS/OCCT
-    REF V7_9_2
-    SHA512 58f9ab91c5119e0a99fb7599bce574f17ce3e3a802a9c503fa0464228d5b2141e3f5557ef68355b4921b572bd10d99bec0f31836a103d5e5fa98cd0d685610a2
-    HEAD_REF master
+set(VERSION 7.9.2)
+# Upstream tag: V7_9_2
+
+vcpkg_download_distfile(ARCHIVE
+    URLS
+        "https://github.com/ayourk/hobbycad-vcpkg/releases/download/sources/opencascade_${VERSION}+dfsg.orig.tar.xz"
+    FILENAME "opencascade_${VERSION}+dfsg.orig.tar.xz"
+    SHA512 4dd85fa698561969de035a8a82b5fcfe034bd8806f07ed26f1d23a69cb3b71de6a03c2425970dd5cd9de69258a5639003d28859aca398d09f809ca1b05f490ad
+)
+
+vcpkg_extract_source_archive(
+    SOURCE_PATH
+    ARCHIVE "${ARCHIVE}"
+    SOURCE_BASE "occt-V7_9_2"
+    PATCHES
+        fix-msvc-unsigned-char.patch
 )
 
 # macOS framework paths - OCCT uses non-standard CMake variable names
@@ -69,7 +73,7 @@ vcpkg_copy_pdbs()
 # recalculates the correct paths after it runs.
 file(APPEND "${CURRENT_PACKAGES_DIR}/share/opencascade/OpenCASCADEConfig.cmake" [[
 
-# vcpkg overlay port fix: recalculate paths to point to vcpkg root
+# vcpkg port fix: recalculate paths to point to vcpkg root
 # The original config ends up with OpenCASCADE_INSTALL_PREFIX pointing to share/
 # which causes include paths to be wrong. Fix by going up one more level.
 get_filename_component(_VCPKG_OCCT_ROOT "${CMAKE_CURRENT_LIST_DIR}" PATH)
