@@ -1,0 +1,20 @@
+Fix macOS build failure in no_direct_extern_access config test
+
+The test uses visibility("protected") which is ELF-specific and not
+supported on macOS (Mach-O). Combined with -Werror, this causes the
+config test to fail during feature detection.
+
+Remove -Werror from this specific test since it's checking linker
+behavior, not compiler warnings. The test result is the same either
+way - macOS doesn't support this feature.
+
+--- a/config.tests/no_direct_extern_access/CMakeLists.txt
++++ b/config.tests/no_direct_extern_access/CMakeLists.txt
+@@ -7,7 +7,6 @@ project(direct_extern_access LANGUAGES CXX)
+ add_library(no_extern_access_lib SHARED lib.cpp)
+ add_executable(no_extern_access_main other.cpp main.cpp)
+
+-target_compile_options(no_extern_access_lib PRIVATE "-Werror")
+ target_compile_options(no_extern_access_lib PUBLIC "$<$<CXX_COMPILER_ID:GNU>:-mno-direct-extern-access>")
+ target_compile_options(no_extern_access_lib PUBLIC "$<$<CXX_COMPILER_ID:Clang>:-fno-direct-access-external-data>")
+

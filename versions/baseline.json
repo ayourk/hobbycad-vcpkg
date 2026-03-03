@@ -23,6 +23,10 @@
     "openmesh": {
       "baseline": "11.0.0",
       "port-version": 0
+    },
+    "qtbase": {
+      "baseline": "6.4.2",
+      "port-version": 0
     }
   }
 }
