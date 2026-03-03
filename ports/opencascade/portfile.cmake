@@ -15,6 +15,8 @@ vcpkg_extract_source_archive(
     SOURCE_PATH
     ARCHIVE "${ARCHIVE}"
     SOURCE_BASE "occt-V7_9_2"
+    PATCHES
+        fix-rapidjson-header-only.patch
 )
 
 # macOS framework paths - OCCT uses non-standard CMake variable names

@@ -1,0 +1,14 @@
+diff --git a/adm/cmake/rapidjson.cmake b/adm/cmake/rapidjson.cmake
+--- a/adm/cmake/rapidjson.cmake
++++ b/adm/cmake/rapidjson.cmake
+@@ -3,7 +3,9 @@
+ # vcpkg processing
+ if (BUILD_USE_VCPKG)
+   find_package(RapidJSON CONFIG REQUIRED)
+-  set(CSF_RapidJSON rapidjson)
++  # RapidJSON is header-only, no library to link.
++  # Set CSF_RapidJSON to empty to avoid linker errors on Windows.
++  set(CSF_RapidJSON "")
+   list (APPEND 3RDPARTY_INCLUDE_DIRS "${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/include/rapidjson")
+   return()
+ endif()

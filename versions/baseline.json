@@ -18,7 +18,7 @@
     },
     "opencascade": {
       "baseline": "7.9.2",
-      "port-version": 0
+      "port-version": 1
     },
     "openmesh": {
       "baseline": "11.0.0",
