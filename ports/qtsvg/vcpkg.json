@@ -1,0 +1,23 @@
+{
+  "$comment": "Qt 6 SVG Module for HobbyCAD static builds",
+  "name": "qtsvg",
+  "version": "6.4.2",
+  "port-version": 0,
+  "description": "Qt SVG Module",
+  "homepage": "https://www.qt.io/",
+  "license": "LGPL-3.0-only",
+  "dependencies": [
+    {
+      "name": "qtbase",
+      "default-features": false
+    },
+    {
+      "name": "vcpkg-cmake",
+      "host": true
+    },
+    {
+      "name": "vcpkg-cmake-config",
+      "host": true
+    }
+  ]
+}
