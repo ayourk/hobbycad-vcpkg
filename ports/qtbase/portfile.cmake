@@ -16,6 +16,7 @@ vcpkg_extract_source_archive(
     SOURCE_BASE "qtbase-everywhere-src-${QT_VERSION}"
     PATCHES
         fix-macos-visibility-test.patch
+        add-wintab-headers.patch
 )
 
 vcpkg_find_acquire_program(PERL)
