@@ -1,17 +1,27 @@
 diff --git a/cmake/QtPublicTargetHelpers.cmake b/cmake/QtPublicTargetHelpers.cmake
-index 1234567890..abcdef1234 100644
 --- a/cmake/QtPublicTargetHelpers.cmake
 +++ b/cmake/QtPublicTargetHelpers.cmake
-@@ -254,6 +254,12 @@ function(__qt_internal_promote_target_to_global target)
-         return()
-     endif()
+@@ -250,6 +250,23 @@ function(__qt_internal_collect_object_libraries_recursively out_var target initi
+ endfunction()
 
-+    # Check if target is already global to avoid CMake error
-+    get_target_property(_is_already_global ${target} IMPORTED_GLOBAL)
-+    if(_is_already_global)
+ function(__qt_internal_promote_target_to_global target)
++    # Skip if target doesn't exist
++    if(NOT TARGET ${target})
 +        return()
 +    endif()
 +
-     set_property(TARGET ${target} PROPERTY IMPORTED_GLOBAL TRUE)
- endfunction()
-
++    # Check if target is an alias (cannot promote aliases)
++    get_target_property(_aliased ${target} ALIASED_TARGET)
++    if(_aliased)
++        return()
++    endif()
++
++    # Skip system/toolchain-provided targets that may be from different scopes
++    # These are typically already global or cannot be safely promoted
++    if("${target}" MATCHES "^(Threads::|ZLIB::|PNG::|JPEG::|Freetype::|Harfbuzz::|OpenGL::)")
++        return()
++    endif()
++
+     get_property(is_global TARGET ${target} PROPERTY IMPORTED_GLOBAL)
+     if(NOT is_global)
+         message(DEBUG "Promoting target to global: '${target}'")
