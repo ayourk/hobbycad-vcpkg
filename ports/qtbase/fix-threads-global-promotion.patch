@@ -1,0 +1,17 @@
+diff --git a/cmake/QtPublicTargetHelpers.cmake b/cmake/QtPublicTargetHelpers.cmake
+index 1234567890..abcdef1234 100644
+--- a/cmake/QtPublicTargetHelpers.cmake
++++ b/cmake/QtPublicTargetHelpers.cmake
+@@ -254,6 +254,12 @@ function(__qt_internal_promote_target_to_global target)
+         return()
+     endif()
+
++    # Check if target is already global to avoid CMake error
++    get_target_property(_is_already_global ${target} IMPORTED_GLOBAL)
++    if(_is_already_global)
++        return()
++    endif()
++
+     set_property(TARGET ${target} PROPERTY IMPORTED_GLOBAL TRUE)
+ endfunction()
+

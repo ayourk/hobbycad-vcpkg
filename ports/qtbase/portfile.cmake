@@ -17,6 +17,7 @@ vcpkg_extract_source_archive(
     PATCHES
         fix-macos-visibility-test.patch
         add-wintab-headers.patch
+        fix-threads-global-promotion.patch
 )
 
 vcpkg_find_acquire_program(PERL)
