@@ -242,7 +242,7 @@ new file mode 100644
 index 0000000000..a1b2c3d456
 --- /dev/null
 +++ b/src/3rdparty/wintab/wintab.h
-@@ -0,0 +1,864 @@
+@@ -0,0 +1,863 @@
 +/* -------------------------------- wintab.h -------------------------------- */
 +/* Combined 16 & 32-bit version. */
 +
