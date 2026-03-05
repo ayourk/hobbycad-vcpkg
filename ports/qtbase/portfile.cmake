@@ -109,6 +109,7 @@ vcpkg_cmake_configure(
         -DQT_BUILD_EXAMPLES=OFF
         -DQT_BUILD_TESTS=OFF
         -DQT_BUILD_BENCHMARKS=OFF
+        -DQT_FORCE_BUILD_TOOLS=ON
         -DQT_USE_BUNDLED_BundledFreetype=OFF
         -DQT_USE_BUNDLED_BundledHarfbuzz=OFF
         -DQT_USE_BUNDLED_BundledLibpng=OFF
@@ -125,7 +126,6 @@ vcpkg_cmake_configure(
 vcpkg_cmake_install()
 
 # Dynamically find and fixup all Qt6 cmake config directories
-# This includes Qt6BuildInternals which is required by other Qt modules
 file(GLOB _qt6_cmake_dirs LIST_DIRECTORIES true "${CURRENT_PACKAGES_DIR}/lib/cmake/Qt6*")
 foreach(_dir IN LISTS _qt6_cmake_dirs)
     if(IS_DIRECTORY "${_dir}")
@@ -133,6 +133,16 @@ foreach(_dir IN LISTS _qt6_cmake_dirs)
         vcpkg_cmake_config_fixup(PACKAGE_NAME "${_pkg_name}" CONFIG_PATH "lib/cmake/${_pkg_name}")
     endif()
 endforeach()
+
+# Qt6BuildInternals is installed as subdirectory of Qt6, but CMake expects it at share/Qt6BuildInternals/
+# Copy BuildInternals cmake files to expected location if they exist in Qt6 subdirectory
+if(EXISTS "${CURRENT_PACKAGES_DIR}/share/Qt6/QtBuildInternals")
+    file(COPY "${CURRENT_PACKAGES_DIR}/share/Qt6/QtBuildInternals/" DESTINATION "${CURRENT_PACKAGES_DIR}/share/Qt6BuildInternals")
+endif()
+# Also check lib/cmake location before it gets cleaned up
+if(EXISTS "${CURRENT_PACKAGES_DIR}/lib/cmake/Qt6BuildInternals")
+    vcpkg_cmake_config_fixup(PACKAGE_NAME "Qt6BuildInternals" CONFIG_PATH "lib/cmake/Qt6BuildInternals")
+endif()
 
 vcpkg_copy_pdbs()
 
