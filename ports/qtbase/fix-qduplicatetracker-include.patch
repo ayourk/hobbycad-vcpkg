@@ -1,7 +1,7 @@
 diff --git a/src/corelib/tools/qduplicatetracker_p.h b/src/corelib/tools/qduplicatetracker_p.h
 --- a/src/corelib/tools/qduplicatetracker_p.h
 +++ b/src/corelib/tools/qduplicatetracker_p.h
-@@ -16,12 +16,14 @@
+@@ -16,7 +16,7 @@
 
  #include <private/qglobal_p.h>
 
@@ -10,8 +10,3 @@ diff --git a/src/corelib/tools/qduplicatetracker_p.h b/src/corelib/tools/qduplic
  #  include <unordered_set>
  #  include <memory_resource>
  #  include <qhash.h> // for the hashing helpers
- #else
- #  include <qset.h>
- #endif
-
- QT_BEGIN_NAMESPACE
