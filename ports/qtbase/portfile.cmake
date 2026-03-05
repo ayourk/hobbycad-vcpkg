@@ -122,15 +122,16 @@ vcpkg_cmake_configure(
 )
 
 vcpkg_cmake_install()
-vcpkg_cmake_config_fixup(PACKAGE_NAME Qt6 CONFIG_PATH lib/cmake/Qt6)
-vcpkg_cmake_config_fixup(PACKAGE_NAME Qt6Core CONFIG_PATH lib/cmake/Qt6Core)
-vcpkg_cmake_config_fixup(PACKAGE_NAME Qt6CoreTools CONFIG_PATH lib/cmake/Qt6CoreTools)
-vcpkg_cmake_config_fixup(PACKAGE_NAME Qt6Gui CONFIG_PATH lib/cmake/Qt6Gui)
-vcpkg_cmake_config_fixup(PACKAGE_NAME Qt6GuiTools CONFIG_PATH lib/cmake/Qt6GuiTools)
-vcpkg_cmake_config_fixup(PACKAGE_NAME Qt6OpenGL CONFIG_PATH lib/cmake/Qt6OpenGL)
-vcpkg_cmake_config_fixup(PACKAGE_NAME Qt6OpenGLWidgets CONFIG_PATH lib/cmake/Qt6OpenGLWidgets)
-vcpkg_cmake_config_fixup(PACKAGE_NAME Qt6Widgets CONFIG_PATH lib/cmake/Qt6Widgets)
-vcpkg_cmake_config_fixup(PACKAGE_NAME Qt6WidgetsTools CONFIG_PATH lib/cmake/Qt6WidgetsTools)
+
+# Dynamically find and fixup all Qt6 cmake config directories
+# This includes Qt6BuildInternals which is required by other Qt modules
+file(GLOB _qt6_cmake_dirs LIST_DIRECTORIES true "${CURRENT_PACKAGES_DIR}/lib/cmake/Qt6*")
+foreach(_dir IN LISTS _qt6_cmake_dirs)
+    if(IS_DIRECTORY "${_dir}")
+        get_filename_component(_pkg_name "${_dir}" NAME)
+        vcpkg_cmake_config_fixup(PACKAGE_NAME "${_pkg_name}" CONFIG_PATH "lib/cmake/${_pkg_name}")
+    endif()
+endforeach()
 
 vcpkg_copy_pdbs()
 
