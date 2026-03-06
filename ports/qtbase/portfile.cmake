@@ -125,6 +125,16 @@ vcpkg_cmake_configure(
 
 vcpkg_cmake_install()
 
+# Qt6BuildInternals cmake files must be copied BEFORE the fixup loop moves/removes lib/cmake
+# Check all possible locations where Qt might install BuildInternals
+if(EXISTS "${CURRENT_PACKAGES_DIR}/lib/cmake/Qt6BuildInternals")
+    # Standard location - will be handled by fixup loop below
+elseif(EXISTS "${CURRENT_PACKAGES_DIR}/lib/cmake/Qt6/Qt6BuildInternals")
+    # Nested under Qt6 - copy before fixup moves Qt6
+    file(COPY "${CURRENT_PACKAGES_DIR}/lib/cmake/Qt6/Qt6BuildInternals/"
+         DESTINATION "${CURRENT_PACKAGES_DIR}/share/Qt6BuildInternals")
+endif()
+
 # Dynamically find and fixup all Qt6 cmake config directories
 file(GLOB _qt6_cmake_dirs LIST_DIRECTORIES true "${CURRENT_PACKAGES_DIR}/lib/cmake/Qt6*")
 foreach(_dir IN LISTS _qt6_cmake_dirs)
@@ -134,18 +144,14 @@ foreach(_dir IN LISTS _qt6_cmake_dirs)
     endif()
 endforeach()
 
-# Qt6BuildInternals may be nested under lib/cmake/Qt6/ instead of lib/cmake/Qt6BuildInternals/
-# Handle this case explicitly before lib/cmake cleanup
-if(EXISTS "${CURRENT_PACKAGES_DIR}/lib/cmake/Qt6/Qt6BuildInternals")
-    file(COPY "${CURRENT_PACKAGES_DIR}/lib/cmake/Qt6/Qt6BuildInternals/" DESTINATION "${CURRENT_PACKAGES_DIR}/share/Qt6BuildInternals")
-endif()
-# Also copy from share/Qt6 if that's where it ended up after fixup
+# Post-fixup: copy BuildInternals from share/Qt6 if it ended up there
 if(EXISTS "${CURRENT_PACKAGES_DIR}/share/Qt6/Qt6BuildInternals")
-    file(COPY "${CURRENT_PACKAGES_DIR}/share/Qt6/Qt6BuildInternals/" DESTINATION "${CURRENT_PACKAGES_DIR}/share/Qt6BuildInternals")
+    file(COPY "${CURRENT_PACKAGES_DIR}/share/Qt6/Qt6BuildInternals/"
+         DESTINATION "${CURRENT_PACKAGES_DIR}/share/Qt6BuildInternals")
 endif()
-# Legacy location check
 if(EXISTS "${CURRENT_PACKAGES_DIR}/share/Qt6/QtBuildInternals")
-    file(COPY "${CURRENT_PACKAGES_DIR}/share/Qt6/QtBuildInternals/" DESTINATION "${CURRENT_PACKAGES_DIR}/share/Qt6BuildInternals")
+    file(COPY "${CURRENT_PACKAGES_DIR}/share/Qt6/QtBuildInternals/"
+         DESTINATION "${CURRENT_PACKAGES_DIR}/share/Qt6BuildInternals")
 endif()
 
 vcpkg_copy_pdbs()
