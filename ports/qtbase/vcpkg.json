@@ -2,7 +2,7 @@
   "$comment": "Qt 6 Base Module for HobbyCAD static builds",
   "name": "qtbase",
   "version": "6.4.2",
-  "port-version": 11,
+  "port-version": 12,
   "description": "Qt Application Framework Base Module (Core, GUI, Widgets, OpenGL)",
   "homepage": "https://www.qt.io/",
   "license": "LGPL-3.0-only",

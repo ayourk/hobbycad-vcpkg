@@ -26,7 +26,7 @@
     },
     "qtbase": {
       "baseline": "6.4.2",
-      "port-version": 11
+      "port-version": 12
     },
     "qtsvg": {
       "baseline": "6.4.2",

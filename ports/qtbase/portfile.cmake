@@ -196,12 +196,30 @@ endif()
 string(REPLACE "@QT_VERSION@" "${QT_VERSION}" _bi_version_content "${_bi_version_content}")
 file(WRITE "${_bi_dest}/Qt6BuildInternalsConfigVersion.cmake" "${_bi_version_content}")
 
-# Dynamically find and fixup all Qt6 cmake config directories
-file(GLOB _qt6_cmake_dirs LIST_DIRECTORIES true "${CURRENT_PACKAGES_DIR}/lib/cmake/Qt6*")
-foreach(_dir IN LISTS _qt6_cmake_dirs)
-    if(IS_DIRECTORY "${_dir}")
-        get_filename_component(_pkg_name "${_dir}" NAME)
-        vcpkg_cmake_config_fixup(PACKAGE_NAME "${_pkg_name}" CONFIG_PATH "lib/cmake/${_pkg_name}")
+# Fix up Qt6 cmake config directories
+# Qt6 installs cmake configs to lib/cmake/Qt6*/ directories
+# We need to move them to share/Qt6*/ for vcpkg compatibility
+
+# List of Qt6 modules provided by qtbase
+set(_qt6_modules
+    Qt6
+    Qt6Core
+    Qt6CoreTools
+    Qt6Gui
+    Qt6GuiTools
+    Qt6Widgets
+    Qt6WidgetsTools
+    Qt6OpenGL
+    Qt6OpenGLWidgets
+    Qt6Concurrent
+    Qt6Xml
+    Qt6DBus
+    Qt6PrintSupport
+)
+
+foreach(_mod IN LISTS _qt6_modules)
+    if(EXISTS "${CURRENT_PACKAGES_DIR}/lib/cmake/${_mod}")
+        vcpkg_cmake_config_fixup(PACKAGE_NAME "${_mod}" CONFIG_PATH "lib/cmake/${_mod}")
     endif()
 endforeach()
 
