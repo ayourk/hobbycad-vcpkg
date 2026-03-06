@@ -146,9 +146,11 @@ endif()
 
 vcpkg_copy_pdbs()
 
-# Copy tools
-set(QT_TOOLS moc rcc uic)
-vcpkg_copy_tools(TOOL_NAMES ${QT_TOOLS} SEARCH_DIR "${CURRENT_PACKAGES_DIR}/bin" AUTO_CLEAN)
+# Copy tools (only for shared builds - static builds don't produce tools)
+if(NOT VCPKG_LIBRARY_LINKAGE STREQUAL "static")
+    set(QT_TOOLS moc rcc uic)
+    vcpkg_copy_tools(TOOL_NAMES ${QT_TOOLS} SEARCH_DIR "${CURRENT_PACKAGES_DIR}/bin" AUTO_CLEAN)
+endif()
 
 # Clean up
 file(REMOVE_RECURSE
