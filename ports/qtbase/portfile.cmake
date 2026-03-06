@@ -197,30 +197,38 @@ string(REPLACE "@QT_VERSION@" "${QT_VERSION}" _bi_version_content "${_bi_version
 file(WRITE "${_bi_dest}/Qt6BuildInternalsConfigVersion.cmake" "${_bi_version_content}")
 
 # Fix up Qt6 cmake config directories
-# Qt6 installs cmake configs to lib/cmake/Qt6*/ directories
-# We need to move them to share/Qt6*/ for vcpkg compatibility
+# Qt6 installs ALL cmake configs into lib/cmake/Qt6/ (flat structure)
+# But Qt6Config.cmake expects components in separate directories like share/Qt6Core/
+# We need to fix up Qt6 first, then create the component directories
 
-# List of Qt6 modules provided by qtbase
-set(_qt6_modules
-    Qt6
+# First, fix up the main Qt6 directory
+vcpkg_cmake_config_fixup(PACKAGE_NAME "Qt6" CONFIG_PATH "lib/cmake/Qt6")
+
+# Qt6 component modules - these need their own directories under share/
+set(_qt6_components
     Qt6Core
-    Qt6CoreTools
     Qt6Gui
-    Qt6GuiTools
     Qt6Widgets
-    Qt6WidgetsTools
     Qt6OpenGL
     Qt6OpenGLWidgets
     Qt6Concurrent
     Qt6Xml
-    Qt6DBus
-    Qt6PrintSupport
 )
 
-foreach(_mod IN LISTS _qt6_modules)
-    if(EXISTS "${CURRENT_PACKAGES_DIR}/lib/cmake/${_mod}")
-        vcpkg_cmake_config_fixup(PACKAGE_NAME "${_mod}" CONFIG_PATH "lib/cmake/${_mod}")
-    endif()
+# Create component directories and copy config files from share/Qt6/ to share/<component>/
+foreach(_comp IN LISTS _qt6_components)
+    set(_comp_dir "${CURRENT_PACKAGES_DIR}/share/${_comp}")
+    file(MAKE_DIRECTORY "${_comp_dir}")
+
+    # Copy all files matching the component name pattern
+    file(GLOB _comp_files "${CURRENT_PACKAGES_DIR}/share/Qt6/${_comp}*.cmake")
+    foreach(_file IN LISTS _comp_files)
+        get_filename_component(_filename "${_file}" NAME)
+        file(COPY "${_file}" DESTINATION "${_comp_dir}")
+    endforeach()
+
+    # Create a ConfigVersion file for the component
+    file(WRITE "${_comp_dir}/${_comp}ConfigVersion.cmake" "set(PACKAGE_VERSION \"${QT_VERSION}\")\nset(PACKAGE_VERSION_COMPATIBLE TRUE)\nset(PACKAGE_VERSION_EXACT TRUE)\n")
 endforeach()
 
 vcpkg_copy_pdbs()
