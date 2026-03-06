@@ -134,14 +134,18 @@ foreach(_dir IN LISTS _qt6_cmake_dirs)
     endif()
 endforeach()
 
-# Qt6BuildInternals is installed as subdirectory of Qt6, but CMake expects it at share/Qt6BuildInternals/
-# Copy BuildInternals cmake files to expected location if they exist in Qt6 subdirectory
+# Qt6BuildInternals may be nested under lib/cmake/Qt6/ instead of lib/cmake/Qt6BuildInternals/
+# Handle this case explicitly before lib/cmake cleanup
+if(EXISTS "${CURRENT_PACKAGES_DIR}/lib/cmake/Qt6/Qt6BuildInternals")
+    file(COPY "${CURRENT_PACKAGES_DIR}/lib/cmake/Qt6/Qt6BuildInternals/" DESTINATION "${CURRENT_PACKAGES_DIR}/share/Qt6BuildInternals")
+endif()
+# Also copy from share/Qt6 if that's where it ended up after fixup
+if(EXISTS "${CURRENT_PACKAGES_DIR}/share/Qt6/Qt6BuildInternals")
+    file(COPY "${CURRENT_PACKAGES_DIR}/share/Qt6/Qt6BuildInternals/" DESTINATION "${CURRENT_PACKAGES_DIR}/share/Qt6BuildInternals")
+endif()
+# Legacy location check
 if(EXISTS "${CURRENT_PACKAGES_DIR}/share/Qt6/QtBuildInternals")
     file(COPY "${CURRENT_PACKAGES_DIR}/share/Qt6/QtBuildInternals/" DESTINATION "${CURRENT_PACKAGES_DIR}/share/Qt6BuildInternals")
-endif()
-# Also check lib/cmake location before it gets cleaned up
-if(EXISTS "${CURRENT_PACKAGES_DIR}/lib/cmake/Qt6BuildInternals")
-    vcpkg_cmake_config_fixup(PACKAGE_NAME "Qt6BuildInternals" CONFIG_PATH "lib/cmake/Qt6BuildInternals")
 endif()
 
 vcpkg_copy_pdbs()
