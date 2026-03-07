@@ -1,9 +1,8 @@
 # Qt 6 Base + SVG Modules for HobbyCAD static builds
 # Source: PPA dfsg tarballs (hosted on GitHub releases)
 #
-# This port builds both qtbase and qtsvg together to avoid Qt6BuildInternals
-# complexity. Building qtsvg immediately after qtbase (before cleanup) allows
-# it to use Qt's internal build infrastructure directly.
+# This port integrates qtsvg directly into the qtbase build tree, creating
+# a truly monolithic build that avoids Qt6BuildInternals complexity entirely.
 
 set(QT_VERSION 6.4.2)
 
@@ -25,6 +24,7 @@ vcpkg_download_distfile(QTSVG_ARCHIVE
     SHA512 9b9de3f19a6c98d61ec1b4ba1883aada3b57db8e2ce56a493b6d7c639ed49a43f51c16b11f65cf8ee7ba8c8f4c61e1eedebb99c8645acfcc934048f2eb76fe64
 )
 
+# Extract qtbase first (with patches)
 vcpkg_extract_source_archive(
     QTBASE_SOURCE_PATH
     ARCHIVE "${QTBASE_ARCHIVE}"
@@ -36,11 +36,68 @@ vcpkg_extract_source_archive(
         fix-qduplicatetracker-include.patch
 )
 
+# Extract qtsvg to a temporary location
 vcpkg_extract_source_archive(
     QTSVG_SOURCE_PATH
     ARCHIVE "${QTSVG_ARCHIVE}"
     SOURCE_BASE "qtsvg-everywhere-src-${QT_VERSION}"
 )
+
+# ============================================================================
+# Integrate QtSvg into QtBase source tree
+# ============================================================================
+
+# Copy qtsvg sources into qtbase
+file(COPY "${QTSVG_SOURCE_PATH}/src/svg" DESTINATION "${QTBASE_SOURCE_PATH}/src/")
+
+# Copy qtsvg includes
+if(EXISTS "${QTSVG_SOURCE_PATH}/include/QtSvg")
+    file(COPY "${QTSVG_SOURCE_PATH}/include/QtSvg" DESTINATION "${QTBASE_SOURCE_PATH}/include/")
+endif()
+
+# Remove qtsvg's original cmake files that would interfere
+file(REMOVE "${QTBASE_SOURCE_PATH}/src/svg/.cmake.conf")
+file(REMOVE "${QTBASE_SOURCE_PATH}/src/svg/Qt6SvgMacros.cmake")
+
+# Create the CMakeLists.txt for the integrated svg module
+# Uses qt_internal_add_module which is available during qtbase build
+file(WRITE "${QTBASE_SOURCE_PATH}/src/svg/CMakeLists.txt"
+"# Qt6 SVG Module - integrated into qtbase build
+# This uses qtbase's internal infrastructure (qt_internal_add_module)
+
+qt_internal_add_module(Svg
+    GENERATE_CPP_EXPORTS
+    SOURCES
+        qsvgfont.cpp qsvgfont_p.h
+        qsvggenerator.cpp qsvggenerator.h
+        qsvggraphics.cpp qsvggraphics_p.h
+        qsvghandler.cpp qsvghandler_p.h
+        qsvgnode.cpp qsvgnode_p.h
+        qsvgrenderer.cpp qsvgrenderer.h
+        qsvgstructure.cpp qsvgstructure_p.h
+        qsvgstyle.cpp qsvgstyle_p.h
+        qsvgtinydocument.cpp qsvgtinydocument_p.h
+        qtsvgglobal.h
+    DEFINES
+        QT_BUILD_SVG_LIB
+    LIBRARIES
+        Qt::CorePrivate
+        Qt::GuiPrivate
+    PUBLIC_LIBRARIES
+        Qt::Core
+        Qt::Gui
+    PRIVATE_MODULE_INTERFACE
+        Qt::CorePrivate
+        Qt::GuiPrivate
+)
+")
+
+# Add svg to the src/CMakeLists.txt subdirectories
+file(READ "${QTBASE_SOURCE_PATH}/src/CMakeLists.txt" _src_cmake)
+if(NOT _src_cmake MATCHES "add_subdirectory\\(svg\\)")
+    string(APPEND _src_cmake "\n# QtSvg module (integrated)\nadd_subdirectory(svg)\n")
+    file(WRITE "${QTBASE_SOURCE_PATH}/src/CMakeLists.txt" "${_src_cmake}")
+endif()
 
 # ============================================================================
 # Build tools setup
@@ -132,7 +189,7 @@ set(DISABLE_OPTIONS
 )
 
 # ============================================================================
-# Build Qt Base
+# Build Qt Base (with integrated SVG module)
 # ============================================================================
 
 vcpkg_cmake_configure(
@@ -154,71 +211,6 @@ vcpkg_cmake_configure(
         ${INPUT_OPTIONS}
         ${PLATFORM_OPTIONS}
         ${DISABLE_OPTIONS}
-)
-
-vcpkg_cmake_install()
-
-# ============================================================================
-# Build Qt SVG (using just-installed qtbase)
-# ============================================================================
-
-# Qt SVG needs to find the just-installed qtbase.
-# We point CMAKE_PREFIX_PATH to both the packages dir and the build dir
-# so it can find Qt6Config.cmake and Qt6BuildInternals.
-
-# Copy Qt cmake infrastructure from source for BuildInternals
-set(_cmake_dest "${CURRENT_PACKAGES_DIR}/share/Qt6")
-file(MAKE_DIRECTORY "${_cmake_dest}")
-file(COPY "${QTBASE_SOURCE_PATH}/cmake/" DESTINATION "${_cmake_dest}")
-
-# Create a minimal Qt6BuildInternalsConfig.cmake
-set(_bi_dest "${CURRENT_PACKAGES_DIR}/share/Qt6BuildInternals")
-file(MAKE_DIRECTORY "${_bi_dest}")
-file(WRITE "${_bi_dest}/Qt6BuildInternalsConfig.cmake"
-"# Qt6BuildInternals for vcpkg monolithic build
-cmake_minimum_required(VERSION 3.16)
-set(PACKAGE_VERSION \"${QT_VERSION}\")
-get_filename_component(_qt6_share_dir \"\${CMAKE_CURRENT_LIST_DIR}/..\" ABSOLUTE)
-set(QT_BUILD_INTERNALS_PATH \"\${CMAKE_CURRENT_LIST_DIR}\")
-set(QT_CMAKE_EXPORT_NAMESPACE \"Qt6\")
-set(INSTALL_CMAKE_NAMESPACE \"Qt6\")
-set(QT_CMAKE_DIR \"\${_qt6_share_dir}\")
-list(PREPEND CMAKE_MODULE_PATH \"\${_qt6_share_dir}\")
-list(PREPEND CMAKE_MODULE_PATH \"\${_qt6_share_dir}/QtBuildInternals\")
-list(PREPEND CMAKE_MODULE_PATH \"\${CMAKE_CURRENT_LIST_DIR}\")
-set(QT_WILL_INSTALL TRUE)
-set(QT_BUILDING_QT TRUE)
-if(EXISTS \"\${_qt6_share_dir}/QtBuildInternals/QtBuildInternalsConfig.cmake\")
-    include(\"\${_qt6_share_dir}/QtBuildInternals/QtBuildInternalsConfig.cmake\")
-endif()
-set(Qt6BuildInternals_FOUND TRUE)
-set(Qt6BuildInternals_VERSION \"${QT_VERSION}\")
-")
-file(WRITE "${_bi_dest}/Qt6BuildInternalsConfigVersion.cmake"
-"set(PACKAGE_VERSION \"${QT_VERSION}\")
-if(PACKAGE_VERSION VERSION_LESS PACKAGE_FIND_VERSION)
-    set(PACKAGE_VERSION_COMPATIBLE FALSE)
-else()
-    set(PACKAGE_VERSION_COMPATIBLE TRUE)
-    if(PACKAGE_FIND_VERSION STREQUAL PACKAGE_VERSION)
-        set(PACKAGE_VERSION_EXACT TRUE)
-    endif()
-endif()
-")
-
-# Configure and build qtsvg
-# Use a separate build directory
-vcpkg_cmake_configure(
-    SOURCE_PATH "${QTSVG_SOURCE_PATH}"
-    OPTIONS
-        -DQT_BUILD_EXAMPLES=OFF
-        -DQT_BUILD_TESTS=OFF
-        -DCMAKE_PREFIX_PATH=${CURRENT_PACKAGES_DIR}
-        "-DQt6_DIR=${CURRENT_PACKAGES_DIR}/lib/cmake/Qt6"
-        "-DQt6BuildInternals_DIR=${_bi_dest}"
-    MAYBE_UNUSED_VARIABLES
-        Qt6_DIR
-        Qt6BuildInternals_DIR
 )
 
 vcpkg_cmake_install()
@@ -257,7 +249,7 @@ if(VCPKG_LIBRARY_LINKAGE STREQUAL "static")
     file(REMOVE_RECURSE "${CURRENT_PACKAGES_DIR}/bin" "${CURRENT_PACKAGES_DIR}/debug/bin")
 endif()
 
-# Remove BuildInternals - not needed by end users
+# Remove any leftover BuildInternals
 file(REMOVE_RECURSE
     "${CURRENT_PACKAGES_DIR}/share/Qt6BuildInternals"
     "${CURRENT_PACKAGES_DIR}/share/Qt6/QtBuildInternals"
