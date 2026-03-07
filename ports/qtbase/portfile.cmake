@@ -50,7 +50,8 @@ vcpkg_extract_source_archive(
 # Copy qtsvg sources into qtbase
 file(COPY "${QTSVG_SOURCE_PATH}/src/svg" DESTINATION "${QTBASE_SOURCE_PATH}/src/")
 
-# Copy qtsvg includes
+# Copy pre-generated QtSvg headers (avoids needing syncqt.pl)
+# This includes forwarding headers like QSvgRenderer, QtSvg, etc.
 if(EXISTS "${QTSVG_SOURCE_PATH}/include/QtSvg")
     file(COPY "${QTSVG_SOURCE_PATH}/include/QtSvg" DESTINATION "${QTBASE_SOURCE_PATH}/include/")
 endif()
@@ -59,14 +60,84 @@ endif()
 file(REMOVE "${QTBASE_SOURCE_PATH}/src/svg/.cmake.conf")
 file(REMOVE "${QTBASE_SOURCE_PATH}/src/svg/Qt6SvgMacros.cmake")
 
+# Create qtsvgexports.h for static builds
+# GENERATE_CPP_EXPORTS doesn't generate this for static libraries
+file(WRITE "${QTBASE_SOURCE_PATH}/include/QtSvg/qtsvgexports.h"
+"// Copyright (C) 2022 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+#ifndef QTSVGEXPORTS_H
+#define QTSVGEXPORTS_H
+
+#include <QtCore/qglobal.h>
+
+#if defined(QT_SHARED) || !defined(QT_STATIC)
+#  if defined(QT_BUILD_SVG_LIB)
+#    define Q_SVG_EXPORT Q_DECL_EXPORT
+#  else
+#    define Q_SVG_EXPORT Q_DECL_IMPORT
+#  endif
+#else
+#  define Q_SVG_EXPORT
+#endif
+
+#endif // QTSVGEXPORTS_H
+")
+
+# Modify qtsvgglobal_p.h to define Q_SVG_PRIVATE_EXPORT directly
+# This avoids needing the separate private exports header
+file(READ "${QTBASE_SOURCE_PATH}/src/svg/qtsvgglobal_p.h" _svgglobal_p)
+string(REPLACE
+    "#include <QtSvg/private/qtsvgexports_p.h>"
+    "// For static builds, export macros are empty\n#define Q_SVG_PRIVATE_EXPORT Q_SVG_EXPORT"
+    _svgglobal_p "${_svgglobal_p}")
+file(WRITE "${QTBASE_SOURCE_PATH}/src/svg/qtsvgglobal_p.h" "${_svgglobal_p}")
+
 # Create the CMakeLists.txt for the integrated svg module
-# Uses qt_internal_add_module which is available during qtbase build
+# This closely matches the original qtsvg CMakeLists.txt but with NO_SYNC_QT
+# since syncqt.pl doesn't know about this module
 file(WRITE "${QTBASE_SOURCE_PATH}/src/svg/CMakeLists.txt"
 "# Qt6 SVG Module - integrated into qtbase build
-# This uses qtbase's internal infrastructure (qt_internal_add_module)
+# Based on original qtsvg/src/svg/CMakeLists.txt
+# NO_SYNC_QT is required because syncqt.pl doesn't know about this module
+
+# Handle zlib dependency (same as original)
+if(NOT QT_FEATURE_system_zlib)
+    find_package(Qt6 COMPONENTS ZlibPrivate)
+elseif(NOT TARGET WrapZLIB::WrapZLIB)
+    qt_find_package(WrapZLIB PROVIDED_TARGETS WrapZLIB::WrapZLIB)
+endif()
+
+# Since we use NO_SYNC_QT, manually set up the QtSvg include directory
+set(_svg_build_include_dir \"\${QT_BUILD_DIR}/include/QtSvg\")
+file(MAKE_DIRECTORY \"\${_svg_build_include_dir}\")
+file(MAKE_DIRECTORY \"\${_svg_build_include_dir}/6.4.2\")
+file(MAKE_DIRECTORY \"\${_svg_build_include_dir}/6.4.2/QtSvg\")
+file(MAKE_DIRECTORY \"\${_svg_build_include_dir}/6.4.2/QtSvg/private\")
+
+# Copy public headers from source include directory
+set(_svg_source_include_dir \"\${CMAKE_CURRENT_SOURCE_DIR}/../../include/QtSvg\")
+if(EXISTS \"\${_svg_source_include_dir}\")
+    file(GLOB _svg_headers \"\${_svg_source_include_dir}/*\")
+    foreach(_header \${_svg_headers})
+        if(NOT IS_DIRECTORY \"\${_header}\")
+            get_filename_component(_header_name \"\${_header}\" NAME)
+            configure_file(\"\${_header}\" \"\${_svg_build_include_dir}/\${_header_name}\" COPYONLY)
+        endif()
+    endforeach()
+    file(GLOB _svg_versioned_headers \"\${_svg_source_include_dir}/6.4.2/*\")
+    foreach(_header \${_svg_versioned_headers})
+        if(NOT IS_DIRECTORY \"\${_header}\")
+            get_filename_component(_header_name \"\${_header}\" NAME)
+            configure_file(\"\${_header}\" \"\${_svg_build_include_dir}/6.4.2/\${_header_name}\" COPYONLY)
+        endif()
+    endforeach()
+endif()
 
 qt_internal_add_module(Svg
+    NO_SYNC_QT
     GENERATE_CPP_EXPORTS
+    GENERATE_PRIVATE_CPP_EXPORTS
     SOURCES
         qsvgfont.cpp qsvgfont_p.h
         qsvggenerator.cpp qsvggenerator.h
@@ -77,9 +148,9 @@ qt_internal_add_module(Svg
         qsvgstructure.cpp qsvgstructure_p.h
         qsvgstyle.cpp qsvgstyle_p.h
         qsvgtinydocument.cpp qsvgtinydocument_p.h
-        qtsvgglobal.h
+        qtsvgglobal.h qtsvgglobal_p.h
     DEFINES
-        QT_BUILD_SVG_LIB
+        QT_NO_USING_NAMESPACE
     LIBRARIES
         Qt::CorePrivate
         Qt::GuiPrivate
@@ -89,6 +160,36 @@ qt_internal_add_module(Svg
     PRIVATE_MODULE_INTERFACE
         Qt::CorePrivate
         Qt::GuiPrivate
+)
+
+# MSVC link options (same as original)
+qt_internal_extend_target(Svg CONDITION MSVC AND (TEST_architecture_arch STREQUAL \"i386\")
+    LINK_OPTIONS
+        \"/BASE:0x66000000\"
+)
+
+# Zlib linking (same as original)
+qt_internal_extend_target(Svg CONDITION QT_FEATURE_system_zlib
+    LIBRARIES
+        WrapZLIB::WrapZLIB
+)
+
+qt_internal_extend_target(Svg CONDITION NOT QT_FEATURE_system_zlib
+    LIBRARIES
+        Qt::ZlibPrivate
+)
+
+# Install QtSvg headers manually since NO_SYNC_QT skips header installation
+set(_svg_install_include_dir \"\${INSTALL_INCLUDEDIR}/QtSvg\")
+install(FILES
+    \"\${_svg_build_include_dir}/qtsvgexports.h\"
+    \"\${_svg_build_include_dir}/qtsvgglobal.h\"
+    \"\${_svg_build_include_dir}/qsvgrenderer.h\"
+    \"\${_svg_build_include_dir}/qsvggenerator.h\"
+    \"\${_svg_build_include_dir}/QtSvg\"
+    \"\${_svg_build_include_dir}/QSvgRenderer\"
+    \"\${_svg_build_include_dir}/QSvgGenerator\"
+    DESTINATION \"\${_svg_install_include_dir}\"
 )
 ")
 
