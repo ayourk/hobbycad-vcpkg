@@ -205,30 +205,40 @@ file(WRITE "${_bi_dest}/Qt6BuildInternalsConfigVersion.cmake" "${_bi_version_con
 vcpkg_cmake_config_fixup(PACKAGE_NAME "Qt6" CONFIG_PATH "lib/cmake/Qt6")
 
 # Qt6 component modules - these need their own directories under share/
+# Include both library components and their Tools packages (moc/rcc/uic)
 set(_qt6_components
     Qt6Core
+    Qt6CoreTools
     Qt6Gui
+    Qt6GuiTools
     Qt6Widgets
+    Qt6WidgetsTools
     Qt6OpenGL
     Qt6OpenGLWidgets
     Qt6Concurrent
     Qt6Xml
 )
 
-# Create component directories and copy config files from share/Qt6/ to share/<component>/
+# Create component directories with wrapper configs that forward to share/Qt6/
 foreach(_comp IN LISTS _qt6_components)
     set(_comp_dir "${CURRENT_PACKAGES_DIR}/share/${_comp}")
     file(MAKE_DIRECTORY "${_comp_dir}")
 
-    # Copy all files matching the component name pattern
-    file(GLOB _comp_files "${CURRENT_PACKAGES_DIR}/share/Qt6/${_comp}*.cmake")
-    foreach(_file IN LISTS _comp_files)
-        get_filename_component(_filename "${_file}" NAME)
-        file(COPY "${_file}" DESTINATION "${_comp_dir}")
-    endforeach()
+    # Create a wrapper config that includes the original from share/Qt6/
+    file(WRITE "${_comp_dir}/${_comp}Config.cmake"
+"# Wrapper config for ${_comp} - forwards to share/Qt6/${_comp}Config.cmake
+get_filename_component(_qt6_root \"\${CMAKE_CURRENT_LIST_DIR}/..\" ABSOLUTE)
+include(\"\${_qt6_root}/Qt6/${_comp}Config.cmake\")
+")
 
     # Create a ConfigVersion file for the component
-    file(WRITE "${_comp_dir}/${_comp}ConfigVersion.cmake" "set(PACKAGE_VERSION \"${QT_VERSION}\")\nset(PACKAGE_VERSION_COMPATIBLE TRUE)\nset(PACKAGE_VERSION_EXACT TRUE)\n")
+    file(WRITE "${_comp_dir}/${_comp}ConfigVersion.cmake"
+"set(PACKAGE_VERSION \"${QT_VERSION}\")
+set(PACKAGE_VERSION_COMPATIBLE TRUE)
+if(\"\${PACKAGE_FIND_VERSION}\" STREQUAL \"${QT_VERSION}\")
+    set(PACKAGE_VERSION_EXACT TRUE)
+endif()
+")
 endforeach()
 
 vcpkg_copy_pdbs()
