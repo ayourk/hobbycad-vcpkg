@@ -1,9 +1,9 @@
 {
-  "$comment": "Qt 6 Base Module for HobbyCAD static builds",
+  "$comment": "Qt 6 Base + SVG Modules for HobbyCAD static builds",
   "name": "qtbase",
   "version": "6.4.2",
-  "port-version": 14,
-  "description": "Qt Application Framework Base Module (Core, GUI, Widgets, OpenGL)",
+  "port-version": 15,
+  "description": "Qt Application Framework Base Module (Core, GUI, Widgets, OpenGL) + SVG Module",
   "homepage": "https://www.qt.io/",
   "license": "LGPL-3.0-only",
   "supports": "!uwp & !android & !ios",
