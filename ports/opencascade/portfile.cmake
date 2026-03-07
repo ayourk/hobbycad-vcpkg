@@ -92,5 +92,9 @@ file(REMOVE_RECURSE
     "${CURRENT_PACKAGES_DIR}/share/opencascade/samples"
 )
 
+# Install cmake wrapper to handle dependencies
+file(INSTALL "${CMAKE_CURRENT_LIST_DIR}/vcpkg-cmake-wrapper.cmake"
+    DESTINATION "${CURRENT_PACKAGES_DIR}/share/${PORT}")
+
 # Install license file
 vcpkg_install_copyright(FILE_LIST "${SOURCE_PATH}/LICENSE_LGPL_21.txt")

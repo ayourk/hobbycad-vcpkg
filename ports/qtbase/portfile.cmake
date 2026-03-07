@@ -320,18 +320,26 @@ vcpkg_cmake_install()
 # Fix up cmake configs
 # ============================================================================
 
-# Fix up the main Qt6 directory first
-vcpkg_cmake_config_fixup(PACKAGE_NAME "Qt6" CONFIG_PATH "lib/cmake/Qt6")
+# Qt's cmake structure is complex with many interdependent files that use
+# relative paths assuming lib/cmake/Qt6 structure. Rather than try to fix
+# all the paths, we keep cmake files in lib/cmake and create a wrapper
+# that redirects find_package to the correct location.
 
-# Dynamically find and fix up ALL Qt6* component directories
+# Create minimal config files in share/ that redirect to lib/cmake
 file(GLOB _qt6_cmake_dirs "${CURRENT_PACKAGES_DIR}/lib/cmake/Qt6*")
 foreach(_dir IN LISTS _qt6_cmake_dirs)
     get_filename_component(_comp "${_dir}" NAME)
-    # Skip directories we handle separately
-    if(NOT "${_comp}" STREQUAL "Qt6" AND NOT "${_comp}" STREQUAL "Qt6BuildInternals")
-        vcpkg_cmake_config_fixup(PACKAGE_NAME "${_comp}" CONFIG_PATH "lib/cmake/${_comp}")
+    if(NOT "${_comp}" STREQUAL "Qt6BuildInternals")
+        file(MAKE_DIRECTORY "${CURRENT_PACKAGES_DIR}/share/${_comp}")
+        file(WRITE "${CURRENT_PACKAGES_DIR}/share/${_comp}/${_comp}Config.cmake"
+            "include(\"\${CMAKE_CURRENT_LIST_DIR}/../../lib/cmake/${_comp}/${_comp}Config.cmake\")\n")
     endif()
 endforeach()
+
+# Also create redirect for Qt6 itself
+file(MAKE_DIRECTORY "${CURRENT_PACKAGES_DIR}/share/Qt6")
+file(WRITE "${CURRENT_PACKAGES_DIR}/share/Qt6/Qt6Config.cmake"
+    "include(\"\${CMAKE_CURRENT_LIST_DIR}/../../lib/cmake/Qt6/Qt6Config.cmake\")\n")
 
 vcpkg_copy_pdbs()
 
@@ -343,7 +351,6 @@ file(REMOVE_RECURSE
     "${CURRENT_PACKAGES_DIR}/debug/include"
     "${CURRENT_PACKAGES_DIR}/debug/lib/cmake"
     "${CURRENT_PACKAGES_DIR}/debug/share"
-    "${CURRENT_PACKAGES_DIR}/lib/cmake"
 )
 
 if(VCPKG_LIBRARY_LINKAGE STREQUAL "static")

@@ -2,6 +2,11 @@
   "versions": [
     {
       "version": "7.9.2",
+      "port-version": 2,
+      "git-tree": "39f3243dae10622152d514f0fd379b2b920b472a"
+    },
+    {
+      "version": "7.9.2",
       "port-version": 1,
       "git-tree": "9f262178929815b3ea1c1d3a36493158494cd68b"
     },
