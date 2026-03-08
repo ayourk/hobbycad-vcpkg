@@ -377,6 +377,26 @@ foreach(_dir IN LISTS _qt6_cmake_dirs)
     endif()
 endforeach()
 
+# Fix Qt6Svg include directories
+# NO_SYNC_QT modules may not have correct include paths in their cmake configs.
+# The Qt6::Svg target needs include/QtSvg in its INTERFACE_INCLUDE_DIRECTORIES
+# so that #include <QSvgRenderer> works (not just #include <QtSvg/QSvgRenderer>).
+if(EXISTS "${CURRENT_PACKAGES_DIR}/lib/cmake/Qt6Svg/Qt6SvgTargets.cmake")
+    file(READ "${CURRENT_PACKAGES_DIR}/lib/cmake/Qt6Svg/Qt6SvgTargets.cmake" _svg_targets)
+    # Check if QtSvg include directory is already in the include paths
+    if(NOT _svg_targets MATCHES "include/QtSvg")
+        # Add QtSvg to the include directories by appending to the file
+        file(APPEND "${CURRENT_PACKAGES_DIR}/lib/cmake/Qt6Svg/Qt6SvgTargets.cmake"
+"\n# Fix include directories for NO_SYNC_QT module
+if(TARGET Qt6::Svg)
+    get_target_property(_svg_includes Qt6::Svg INTERFACE_INCLUDE_DIRECTORIES)
+    list(APPEND _svg_includes \"\${_IMPORT_PREFIX}/include/QtSvg\")
+    set_target_properties(Qt6::Svg PROPERTIES INTERFACE_INCLUDE_DIRECTORIES \"\${_svg_includes}\")
+endif()
+")
+    endif()
+endif()
+
 # Also create redirect for Qt6 itself
 file(MAKE_DIRECTORY "${CURRENT_PACKAGES_DIR}/share/Qt6")
 file(WRITE "${CURRENT_PACKAGES_DIR}/share/Qt6/Qt6Config.cmake"
