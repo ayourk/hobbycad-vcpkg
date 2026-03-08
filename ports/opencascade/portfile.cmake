@@ -22,15 +22,14 @@ vcpkg_extract_source_archive(
 # macOS framework paths - OCCT uses non-standard CMake variable names
 # that don't work with vcpkg's toolchain. Use full framework paths
 # instead of -framework flags to avoid vcpkg cmake fixup issues.
+# Note: find_library doesn't work in vcpkg portfiles, so use direct paths.
 set(MACOS_OPTIONS "")
 if(VCPKG_TARGET_IS_OSX)
-    find_library(APPKIT_FRAMEWORK AppKit REQUIRED)
-    find_library(IOKIT_FRAMEWORK IOKit REQUIRED)
-    find_library(OPENGL_FRAMEWORK OpenGL REQUIRED)
+    set(MACOS_FRAMEWORKS "/System/Library/Frameworks")
     list(APPEND MACOS_OPTIONS
-        "-DAppkit_LIB=${APPKIT_FRAMEWORK}"
-        "-DIOKit_LIB=${IOKIT_FRAMEWORK}"
-        "-DOpenGlLibs_LIB=${OPENGL_FRAMEWORK}"
+        "-DAppkit_LIB=${MACOS_FRAMEWORKS}/AppKit.framework"
+        "-DIOKit_LIB=${MACOS_FRAMEWORKS}/IOKit.framework"
+        "-DOpenGlLibs_LIB=${MACOS_FRAMEWORKS}/OpenGL.framework"
     )
 endif()
 
