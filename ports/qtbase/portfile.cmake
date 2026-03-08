@@ -353,8 +353,10 @@ file(REMOVE_RECURSE
     "${CURRENT_PACKAGES_DIR}/debug/share"
 )
 
+# Note: Don't delete bin/ for static builds - Qt tools (moc, rcc, qtpaths, etc.)
+# are still needed for building applications that use Qt static libraries.
 if(VCPKG_LIBRARY_LINKAGE STREQUAL "static")
-    file(REMOVE_RECURSE "${CURRENT_PACKAGES_DIR}/bin" "${CURRENT_PACKAGES_DIR}/debug/bin")
+    file(REMOVE_RECURSE "${CURRENT_PACKAGES_DIR}/debug/bin")
 endif()
 
 # Remove any leftover BuildInternals
