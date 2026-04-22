@@ -1,10 +1,261 @@
-# Qt 6 Base + SVG Modules for HobbyCAD static builds
-# Source: PPA dfsg tarballs (hosted on GitHub releases)
-#
-# This port integrates qtsvg directly into the qtbase build tree, creating
-# a truly monolithic build that avoids Qt6BuildInternals complexity entirely.
+# Qt 6.4.2 Base with selectable features.
+# Source: PPA dfsg tarballs (hosted on GitHub releases).
+# qtsvg is optionally integrated into the qtbase build tree via the
+# "qtsvg" feature, creating a monolithic build that avoids
+# Qt6BuildInternals complexity.
 
 set(QT_VERSION 6.4.2)
+
+# ============================================================================
+# Feature mapping
+# ============================================================================
+
+vcpkg_check_features(OUT_FEATURE_OPTIONS _unused
+    FEATURES
+    "brotli"          _HAS_BROTLI
+    "concurrent"      _HAS_CONCURRENT
+    "dbus"            _HAS_DBUS
+    "freetype"        _HAS_FREETYPE
+    "gui"             _HAS_GUI
+    "harfbuzz"        _HAS_HARFBUZZ
+    "icu"             _HAS_ICU
+    "jpeg"            _HAS_JPEG
+    "network"         _HAS_NETWORK
+    "opengl"          _HAS_OPENGL
+    "openssl"         _HAS_OPENSSL
+    "png"             _HAS_PNG
+    "printsupport"    _HAS_PRINTSUPPORT
+    "sessionmanager"  _HAS_SESSIONMANAGER
+    "sql"             _HAS_SQL
+    "sql-sqlite"      _HAS_SQL_SQLITE
+    "sql-psql"        _HAS_SQL_PSQL
+    "qtsvg"           _HAS_QTSVG
+    "testlib"         _HAS_TESTLIB
+    "thread"          _HAS_THREAD
+    "widgets"         _HAS_WIDGETS
+    "xml"             _HAS_XML
+    "zstd"            _HAS_ZSTD
+)
+
+# Helper: convert bool var to ON/OFF string
+macro(_on_off var out)
+    if(${var})
+        set(${out} ON)
+    else()
+        set(${out} OFF)
+    endif()
+endmacro()
+
+_on_off(_HAS_CONCURRENT _V_CONCURRENT)
+_on_off(_HAS_DBUS        _V_DBUS)
+_on_off(_HAS_GUI         _V_GUI)
+_on_off(_HAS_NETWORK     _V_NETWORK)
+_on_off(_HAS_OPENGL      _V_OPENGL)
+_on_off(_HAS_PRINTSUPPORT   _V_PRINTSUPPORT)
+_on_off(_HAS_SESSIONMANAGER _V_SESSIONMANAGER)
+_on_off(_HAS_SQL         _V_SQL)
+_on_off(_HAS_TESTLIB     _V_TESTLIB)
+_on_off(_HAS_WIDGETS     _V_WIDGETS)
+_on_off(_HAS_XML         _V_XML)
+_on_off(_HAS_ICU         _V_ICU)
+_on_off(_HAS_ZSTD        _V_ZSTD)
+
+# Map features to Qt configure flags
+set(FEATURE_OPTIONS
+    -DFEATURE_concurrent=${_V_CONCURRENT}
+    -DFEATURE_dbus=${_V_DBUS}
+    -DFEATURE_gui=${_V_GUI}
+    -DFEATURE_network=${_V_NETWORK}
+    -DFEATURE_opengl=${_V_OPENGL}
+    -DFEATURE_thread=ON
+    -DFEATURE_process=ON
+    -DFEATURE_printsupport=${_V_PRINTSUPPORT}
+    -DFEATURE_sessionmanager=${_V_SESSIONMANAGER}
+    -DFEATURE_sql=${_V_SQL}
+    -DFEATURE_testlib=${_V_TESTLIB}
+    -DFEATURE_widgets=${_V_WIDGETS}
+    -DFEATURE_xml=${_V_XML}
+)
+
+# GUI-dependent features
+if(_HAS_GUI)
+    _on_off(_HAS_FREETYPE  _V_FREETYPE)
+    _on_off(_HAS_HARFBUZZ  _V_HARFBUZZ)
+    _on_off(_HAS_JPEG      _V_JPEG)
+    _on_off(_HAS_PNG       _V_PNG)
+    list(APPEND FEATURE_OPTIONS
+        -DFEATURE_freetype=${_V_FREETYPE}
+        -DFEATURE_harfbuzz=${_V_HARFBUZZ}
+        -DFEATURE_jpeg=${_V_JPEG}
+        -DFEATURE_png=${_V_PNG}
+    )
+else()
+    list(APPEND FEATURE_OPTIONS
+        -DFEATURE_freetype=OFF
+        -DFEATURE_harfbuzz=OFF
+        -DFEATURE_jpeg=OFF
+        -DFEATURE_png=OFF
+    )
+endif()
+
+# Network-dependent features
+if(_HAS_NETWORK)
+    _on_off(_HAS_OPENSSL _V_OPENSSL)
+    _on_off(_HAS_BROTLI  _V_BROTLI)
+    list(APPEND FEATURE_OPTIONS
+        -DFEATURE_openssl=${_V_OPENSSL}
+        -DFEATURE_brotli=${_V_BROTLI}
+    )
+    if(_HAS_OPENSSL)
+        list(APPEND FEATURE_OPTIONS -DINPUT_openssl=linked)
+    endif()
+else()
+    list(APPEND FEATURE_OPTIONS
+        -DFEATURE_openssl=OFF
+        -DFEATURE_brotli=OFF
+    )
+endif()
+
+# SQL driver flags
+if(_HAS_SQL)
+    _on_off(_HAS_SQL_SQLITE _V_SQL_SQLITE)
+    list(APPEND FEATURE_OPTIONS
+        -DFEATURE_sql_odbc=OFF
+        -DFEATURE_sql_mysql=OFF
+        -DFEATURE_sql_oci=OFF
+        -DFEATURE_system_sqlite=${_V_SQL_SQLITE}
+    )
+    if(NOT _HAS_SQL_PSQL)
+        list(APPEND FEATURE_OPTIONS -DCMAKE_DISABLE_FIND_PACKAGE_PostgreSQL=ON)
+    endif()
+    if(NOT _HAS_SQL_SQLITE)
+        list(APPEND FEATURE_OPTIONS -DCMAKE_DISABLE_FIND_PACKAGE_SQLite3=ON)
+    endif()
+else()
+    list(APPEND FEATURE_OPTIONS
+        -DCMAKE_DISABLE_FIND_PACKAGE_PostgreSQL=ON
+        -DCMAKE_DISABLE_FIND_PACKAGE_SQLite3=ON
+        -DCMAKE_DISABLE_FIND_PACKAGE_ODBC=ON
+        -DCMAKE_DISABLE_FIND_PACKAGE_MySQL=ON
+        -DCMAKE_DISABLE_FIND_PACKAGE_Oracle=ON
+    )
+endif()
+
+# ICU / zstd
+list(APPEND FEATURE_OPTIONS
+    -DFEATURE_icu=${_V_ICU}
+    -DFEATURE_zstd=${_V_ZSTD}
+)
+if(_HAS_ICU)
+    list(APPEND FEATURE_OPTIONS -DCMAKE_DISABLE_FIND_PACKAGE_ICU=OFF)
+else()
+    list(APPEND FEATURE_OPTIONS -DCMAKE_DISABLE_FIND_PACKAGE_ICU=ON)
+endif()
+if(_HAS_ZSTD)
+    list(APPEND FEATURE_OPTIONS -DCMAKE_REQUIRE_FIND_PACKAGE_zstd=ON)
+else()
+    list(APPEND FEATURE_OPTIONS -DCMAKE_DISABLE_FIND_PACKAGE_ZSTD=ON)
+endif()
+
+# Input options for system libraries
+set(INPUT_OPTIONS
+    -DINPUT_doubleconversion=system
+    -DINPUT_libmd4c=qt
+)
+if(_HAS_FREETYPE)
+    list(APPEND INPUT_OPTIONS -DINPUT_freetype=system)
+endif()
+if(_HAS_HARFBUZZ)
+    list(APPEND INPUT_OPTIONS -DINPUT_harfbuzz=system)
+endif()
+if(_HAS_JPEG)
+    list(APPEND INPUT_OPTIONS -DINPUT_libjpeg=system)
+endif()
+if(_HAS_PNG)
+    list(APPEND INPUT_OPTIONS -DINPUT_libpng=system)
+endif()
+
+# Unconditionally disabled packages (not feature-gated)
+set(DISABLE_OPTIONS
+    -DCMAKE_DISABLE_FIND_PACKAGE_ATSPI2=ON
+    -DCMAKE_DISABLE_FIND_PACKAGE_DirectFB=ON
+    -DCMAKE_DISABLE_FIND_PACKAGE_Fontconfig=ON
+    -DCMAKE_DISABLE_FIND_PACKAGE_GLIB2=ON
+    -DCMAKE_DISABLE_FIND_PACKAGE_GSSAPI=ON
+    -DCMAKE_DISABLE_FIND_PACKAGE_GTK3=ON
+    -DCMAKE_DISABLE_FIND_PACKAGE_Libdrm=ON
+    -DCMAKE_DISABLE_FIND_PACKAGE_Libinput=ON
+    -DCMAKE_DISABLE_FIND_PACKAGE_Libproxy=ON
+    -DCMAKE_DISABLE_FIND_PACKAGE_LTTngUST=ON
+    -DCMAKE_DISABLE_FIND_PACKAGE_Mtdev=ON
+    -DCMAKE_DISABLE_FIND_PACKAGE_PPS=ON
+    -DCMAKE_DISABLE_FIND_PACKAGE_Slog2=ON
+    -DCMAKE_DISABLE_FIND_PACKAGE_Tslib=ON
+    -DCMAKE_DISABLE_FIND_PACKAGE_Vulkan=ON
+    -DCMAKE_DISABLE_FIND_PACKAGE_X11=ON
+    -DCMAKE_DISABLE_FIND_PACKAGE_XCB=ON
+    -DCMAKE_DISABLE_FIND_PACKAGE_XKB=ON
+    -DCMAKE_DISABLE_FIND_PACKAGE_X11_XCB=ON
+    -DCMAKE_DISABLE_FIND_PACKAGE_XKB_COMMON_X11=ON
+    -DCMAKE_DISABLE_FIND_PACKAGE_XRender=ON
+    -DCMAKE_DISABLE_FIND_PACKAGE_gbm=ON
+    -DCMAKE_DISABLE_FIND_PACKAGE_libb2=ON
+    -DCMAKE_DISABLE_FIND_PACKAGE_DB2=ON
+    -DCMAKE_DISABLE_FIND_PACKAGE_Interbase=ON
+    -DFEATURE_glib=OFF
+    -DFEATURE_fontconfig=OFF
+    -DFEATURE_xlib=OFF
+    -DFEATURE_xkbcommon=OFF
+    -DFEATURE_xcb=OFF
+    -DFEATURE_xcb_xlib=OFF
+    -DFEATURE_xkbcommon_x11=OFF
+    -DFEATURE_xrender=OFF
+    -DFEATURE_xcb_native_painting=OFF
+    -DFEATURE_opengles2=OFF
+    -DFEATURE_opengles3=OFF
+    -DFEATURE_opengles31=OFF
+    -DFEATURE_opengles32=OFF
+    -DFEATURE_egl=OFF
+    -DCMAKE_DISABLE_FIND_PACKAGE_EGL=ON
+    -DCMAKE_DISABLE_FIND_PACKAGE_GLESv2=ON
+    -DINPUT_bundled_xcb_xinput=no
+    -DINPUT_xcb=no
+    -DINPUT_xkbcommon=no
+)
+
+# CUPS is needed by PrintSupport on macOS; disable everywhere else
+if(NOT VCPKG_TARGET_IS_OSX OR NOT _HAS_PRINTSUPPORT)
+    list(APPEND DISABLE_OPTIONS -DCMAKE_DISABLE_FIND_PACKAGE_Cups=ON)
+endif()
+
+if(NOT _HAS_DBUS)
+    list(APPEND DISABLE_OPTIONS -DCMAKE_DISABLE_FIND_PACKAGE_WrapDBus1=ON)
+endif()
+if(NOT _HAS_BROTLI)
+    list(APPEND DISABLE_OPTIONS -DCMAKE_DISABLE_FIND_PACKAGE_WrapBrotli=ON)
+endif()
+if(NOT _HAS_OPENSSL)
+    list(APPEND DISABLE_OPTIONS -DCMAKE_DISABLE_FIND_PACKAGE_WrapOpenSSL=ON)
+endif()
+
+# Platform-specific
+set(PLATFORM_OPTIONS "")
+if(VCPKG_TARGET_IS_WINDOWS)
+    list(APPEND PLATFORM_OPTIONS -DFEATURE_opengl_desktop=ON)
+elseif(VCPKG_TARGET_IS_OSX)
+    list(APPEND PLATFORM_OPTIONS
+        -DFEATURE_opengl_desktop=ON
+    )
+endif()
+
+# Bundled library overrides
+set(BUNDLE_OPTIONS
+    -DQT_USE_BUNDLED_BundledFreetype=OFF
+    -DQT_USE_BUNDLED_BundledHarfbuzz=OFF
+    -DQT_USE_BUNDLED_BundledLibpng=OFF
+    -DQT_USE_BUNDLED_BundledPcre2=OFF
+    -DQT_USE_BUNDLED_BundledZLIB=OFF
+)
 
 # ============================================================================
 # Download sources
@@ -17,14 +268,6 @@ vcpkg_download_distfile(QTBASE_ARCHIVE
     SHA512 2704b90dab05ad2bc31a1171e2818aaa694d5d579d0defe27f9806f3d6c6263467c0673415b3fa73612e45f076442b5fe003d79b9eb758489616263153189a8d
 )
 
-vcpkg_download_distfile(QTSVG_ARCHIVE
-    URLS
-        "https://github.com/ayourk/hobbycad-vcpkg/releases/download/sources/qt6-svg_${QT_VERSION}.orig.tar.xz"
-    FILENAME "qt6-svg_${QT_VERSION}.orig.tar.xz"
-    SHA512 9b9de3f19a6c98d61ec1b4ba1883aada3b57db8e2ce56a493b6d7c639ed49a43f51c16b11f65cf8ee7ba8c8f4c61e1eedebb99c8645acfcc934048f2eb76fe64
-)
-
-# Extract qtbase first (with patches)
 vcpkg_extract_source_archive(
     QTBASE_SOURCE_PATH
     ARCHIVE "${QTBASE_ARCHIVE}"
@@ -36,45 +279,75 @@ vcpkg_extract_source_archive(
         fix-qduplicatetracker-include.patch
 )
 
-# Extract qtsvg to a temporary location
-vcpkg_extract_source_archive(
-    QTSVG_SOURCE_PATH
-    ARCHIVE "${QTSVG_ARCHIVE}"
-    SOURCE_BASE "qtsvg-everywhere-src-${QT_VERSION}"
+# ============================================================================
+# Restore configure.cmake files stripped by dfsg
+# ============================================================================
+# The dfsg tarball removes configure.cmake files that Qt's build system
+# needs for feature auto-detection (QProcess, QTemporaryFile, etc.).
+# Without them, features are undefined and platform-specific tools
+# (macdeployqt, windeployqt) fail to compile. The files are shipped
+# alongside this port in the dfsg-configure/ directory, sourced from
+# upstream Qt 6.4.2 (tag v6.4.2).
+
+set(_configure_restore
+    "configure.cmake|."
+    "corelib-configure.cmake|src/corelib"
+    "gui-configure.cmake|src/gui"
+    "network-configure.cmake|src/network"
+    "widgets-configure.cmake|src/widgets"
+    "sql-configure.cmake|src/sql"
+    "xml-configure.cmake|src/xml"
+    "printsupport-configure.cmake|src/printsupport"
+    "testlib-configure.cmake|src/testlib"
+    "tools-configure.cmake|src/tools"
 )
 
+foreach(_entry IN LISTS _configure_restore)
+    string(REPLACE "|" ";" _parts "${_entry}")
+    list(GET _parts 0 _src_name)
+    list(GET _parts 1 _dest_dir)
+    set(_dest "${QTBASE_SOURCE_PATH}/${_dest_dir}/configure.cmake")
+    if(NOT EXISTS "${_dest}")
+        file(COPY "${CMAKE_CURRENT_LIST_DIR}/dfsg-configure/${_src_name}"
+             DESTINATION "${QTBASE_SOURCE_PATH}/${_dest_dir}")
+        file(RENAME "${QTBASE_SOURCE_PATH}/${_dest_dir}/${_src_name}" "${_dest}")
+    endif()
+endforeach()
+
 # ============================================================================
-# Integrate QtSvg into QtBase source tree
+# QtSvg integration (only when qtsvg feature is enabled)
 # ============================================================================
 
-# Copy qtsvg sources into qtbase
-file(COPY "${QTSVG_SOURCE_PATH}/src/svg" DESTINATION "${QTBASE_SOURCE_PATH}/src/")
+if(_HAS_QTSVG)
+    vcpkg_download_distfile(QTSVG_ARCHIVE
+        URLS
+            "https://github.com/ayourk/hobbycad-vcpkg/releases/download/sources/qt6-svg_${QT_VERSION}.orig.tar.xz"
+        FILENAME "qt6-svg_${QT_VERSION}.orig.tar.xz"
+        SHA512 9b9de3f19a6c98d61ec1b4ba1883aada3b57db8e2ce56a493b6d7c639ed49a43f51c16b11f65cf8ee7ba8c8f4c61e1eedebb99c8645acfcc934048f2eb76fe64
+    )
 
-# Set up QtSvg include directory
-# The pre-generated headers in qtsvg/include/QtSvg/ have broken relative paths
-# like #include "../../src/svg/qsvgrenderer.h" that don't work after installation.
-# Instead, we create the include directory structure directly with the actual headers.
-file(MAKE_DIRECTORY "${QTBASE_SOURCE_PATH}/include/QtSvg")
+    vcpkg_extract_source_archive(
+        QTSVG_SOURCE_PATH
+        ARCHIVE "${QTSVG_ARCHIVE}"
+        SOURCE_BASE "qtsvg-everywhere-src-${QT_VERSION}"
+    )
 
-# Copy actual implementation headers from src/svg to include/QtSvg
-file(COPY "${QTBASE_SOURCE_PATH}/src/svg/qsvgrenderer.h" DESTINATION "${QTBASE_SOURCE_PATH}/include/QtSvg/")
-file(COPY "${QTBASE_SOURCE_PATH}/src/svg/qsvggenerator.h" DESTINATION "${QTBASE_SOURCE_PATH}/include/QtSvg/")
-file(COPY "${QTBASE_SOURCE_PATH}/src/svg/qtsvgglobal.h" DESTINATION "${QTBASE_SOURCE_PATH}/include/QtSvg/")
+    file(COPY "${QTSVG_SOURCE_PATH}/src/svg" DESTINATION "${QTBASE_SOURCE_PATH}/src/")
 
-# Create forwarding headers (normally generated by syncqt.pl)
-# These allow #include <QSvgRenderer> style includes
-file(WRITE "${QTBASE_SOURCE_PATH}/include/QtSvg/QSvgRenderer" "#include \"qsvgrenderer.h\"\n")
-file(WRITE "${QTBASE_SOURCE_PATH}/include/QtSvg/QSvgGenerator" "#include \"qsvggenerator.h\"\n")
-file(WRITE "${QTBASE_SOURCE_PATH}/include/QtSvg/QtSvg" "#include \"qtsvgglobal.h\"\n#include \"qsvgrenderer.h\"\n#include \"qsvggenerator.h\"\n")
-file(WRITE "${QTBASE_SOURCE_PATH}/include/QtSvg/QtSvgVersion" "#include \"qtsvgversion.h\"\n")
+    file(MAKE_DIRECTORY "${QTBASE_SOURCE_PATH}/include/QtSvg")
+    file(COPY "${QTBASE_SOURCE_PATH}/src/svg/qsvgrenderer.h" DESTINATION "${QTBASE_SOURCE_PATH}/include/QtSvg/")
+    file(COPY "${QTBASE_SOURCE_PATH}/src/svg/qsvggenerator.h" DESTINATION "${QTBASE_SOURCE_PATH}/include/QtSvg/")
+    file(COPY "${QTBASE_SOURCE_PATH}/src/svg/qtsvgglobal.h" DESTINATION "${QTBASE_SOURCE_PATH}/include/QtSvg/")
 
-# Remove qtsvg's original cmake files that would interfere
-file(REMOVE "${QTBASE_SOURCE_PATH}/src/svg/.cmake.conf")
-file(REMOVE "${QTBASE_SOURCE_PATH}/src/svg/Qt6SvgMacros.cmake")
+    file(WRITE "${QTBASE_SOURCE_PATH}/include/QtSvg/QSvgRenderer" "#include \"qsvgrenderer.h\"\n")
+    file(WRITE "${QTBASE_SOURCE_PATH}/include/QtSvg/QSvgGenerator" "#include \"qsvggenerator.h\"\n")
+    file(WRITE "${QTBASE_SOURCE_PATH}/include/QtSvg/QtSvg" "#include \"qtsvgglobal.h\"\n#include \"qsvgrenderer.h\"\n#include \"qsvggenerator.h\"\n")
+    file(WRITE "${QTBASE_SOURCE_PATH}/include/QtSvg/QtSvgVersion" "#include \"qtsvgversion.h\"\n")
 
-# Create qtsvgexports.h for static builds
-# GENERATE_CPP_EXPORTS doesn't generate this for static libraries
-file(WRITE "${QTBASE_SOURCE_PATH}/include/QtSvg/qtsvgexports.h"
+    file(REMOVE "${QTBASE_SOURCE_PATH}/src/svg/.cmake.conf")
+    file(REMOVE "${QTBASE_SOURCE_PATH}/src/svg/Qt6SvgMacros.cmake")
+
+    file(WRITE "${QTBASE_SOURCE_PATH}/include/QtSvg/qtsvgexports.h"
 "// Copyright (C) 2022 The Qt Company Ltd.
 // SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
 
@@ -96,20 +369,19 @@ file(WRITE "${QTBASE_SOURCE_PATH}/include/QtSvg/qtsvgexports.h"
 #endif // QTSVGEXPORTS_H
 ")
 
-# Create qtsvgversion.h
-string(REPLACE "." ";" _qt_version_list "${QT_VERSION}")
-list(GET _qt_version_list 0 _qt_major)
-list(GET _qt_version_list 1 _qt_minor)
-list(GET _qt_version_list 2 _qt_patch)
-string(LENGTH "${_qt_minor}" _minor_len)
-string(LENGTH "${_qt_patch}" _patch_len)
-if(_minor_len EQUAL 1)
-    set(_qt_minor "0${_qt_minor}")
-endif()
-if(_patch_len EQUAL 1)
-    set(_qt_patch "0${_qt_patch}")
-endif()
-file(WRITE "${QTBASE_SOURCE_PATH}/include/QtSvg/qtsvgversion.h"
+    string(REPLACE "." ";" _qt_version_list "${QT_VERSION}")
+    list(GET _qt_version_list 0 _qt_major)
+    list(GET _qt_version_list 1 _qt_minor)
+    list(GET _qt_version_list 2 _qt_patch)
+    string(LENGTH "${_qt_minor}" _minor_len)
+    string(LENGTH "${_qt_patch}" _patch_len)
+    if(_minor_len EQUAL 1)
+        set(_qt_minor "0${_qt_minor}")
+    endif()
+    if(_patch_len EQUAL 1)
+        set(_qt_patch "0${_qt_patch}")
+    endif()
+    file(WRITE "${QTBASE_SOURCE_PATH}/include/QtSvg/qtsvgversion.h"
 "#ifndef QTSVGVERSION_H
 #define QTSVGVERSION_H
 #define QTSVG_VERSION_STR \"${QT_VERSION}\"
@@ -117,38 +389,28 @@ file(WRITE "${QTBASE_SOURCE_PATH}/include/QtSvg/qtsvgversion.h"
 #endif
 ")
 
-# Modify qtsvgglobal_p.h to define Q_SVG_PRIVATE_EXPORT directly
-# This avoids needing the separate private exports header
-file(READ "${QTBASE_SOURCE_PATH}/src/svg/qtsvgglobal_p.h" _svgglobal_p)
-string(REPLACE
-    "#include <QtSvg/private/qtsvgexports_p.h>"
-    "// For static builds, export macros are empty\n#define Q_SVG_PRIVATE_EXPORT Q_SVG_EXPORT"
-    _svgglobal_p "${_svgglobal_p}")
-file(WRITE "${QTBASE_SOURCE_PATH}/src/svg/qtsvgglobal_p.h" "${_svgglobal_p}")
+    file(READ "${QTBASE_SOURCE_PATH}/src/svg/qtsvgglobal_p.h" _svgglobal_p)
+    string(REPLACE
+        "#include <QtSvg/private/qtsvgexports_p.h>"
+        "// For static builds, export macros are empty\n#define Q_SVG_PRIVATE_EXPORT Q_SVG_EXPORT"
+        _svgglobal_p "${_svgglobal_p}")
+    file(WRITE "${QTBASE_SOURCE_PATH}/src/svg/qtsvgglobal_p.h" "${_svgglobal_p}")
 
-# Create the CMakeLists.txt for the integrated svg module
-# This closely matches the original qtsvg CMakeLists.txt but with NO_SYNC_QT
-# since syncqt.pl doesn't know about this module
-file(WRITE "${QTBASE_SOURCE_PATH}/src/svg/CMakeLists.txt"
+    file(WRITE "${QTBASE_SOURCE_PATH}/src/svg/CMakeLists.txt"
 "# Qt6 SVG Module - integrated into qtbase build
-# Based on original qtsvg/src/svg/CMakeLists.txt
-# NO_SYNC_QT is required because syncqt.pl doesn't know about this module
 
-# Handle zlib dependency (same as original)
 if(NOT QT_FEATURE_system_zlib)
     find_package(Qt6 COMPONENTS ZlibPrivate)
 elseif(NOT TARGET WrapZLIB::WrapZLIB)
     qt_find_package(WrapZLIB PROVIDED_TARGETS WrapZLIB::WrapZLIB)
 endif()
 
-# Since we use NO_SYNC_QT, manually set up the QtSvg include directory
 set(_svg_build_include_dir \"\${QT_BUILD_DIR}/include/QtSvg\")
 file(MAKE_DIRECTORY \"\${_svg_build_include_dir}\")
 file(MAKE_DIRECTORY \"\${_svg_build_include_dir}/${QT_VERSION}\")
 file(MAKE_DIRECTORY \"\${_svg_build_include_dir}/${QT_VERSION}/QtSvg\")
 file(MAKE_DIRECTORY \"\${_svg_build_include_dir}/${QT_VERSION}/QtSvg/private\")
 
-# Copy public headers from source include directory
 set(_svg_source_include_dir \"\${CMAKE_CURRENT_SOURCE_DIR}/../../include/QtSvg\")
 if(EXISTS \"\${_svg_source_include_dir}\")
     file(GLOB _svg_headers \"\${_svg_source_include_dir}/*\")
@@ -156,13 +418,6 @@ if(EXISTS \"\${_svg_source_include_dir}\")
         if(NOT IS_DIRECTORY \"\${_header}\")
             get_filename_component(_header_name \"\${_header}\" NAME)
             configure_file(\"\${_header}\" \"\${_svg_build_include_dir}/\${_header_name}\" COPYONLY)
-        endif()
-    endforeach()
-    file(GLOB _svg_versioned_headers \"\${_svg_source_include_dir}/${QT_VERSION}/*\")
-    foreach(_header \${_svg_versioned_headers})
-        if(NOT IS_DIRECTORY \"\${_header}\")
-            get_filename_component(_header_name \"\${_header}\" NAME)
-            configure_file(\"\${_header}\" \"\${_svg_build_include_dir}/${QT_VERSION}/\${_header_name}\" COPYONLY)
         endif()
     endforeach()
 endif()
@@ -195,32 +450,24 @@ qt_internal_add_module(Svg
         Qt::GuiPrivate
 )
 
-# MSVC link options (same as original)
 qt_internal_extend_target(Svg CONDITION MSVC AND (TEST_architecture_arch STREQUAL \"i386\")
-    LINK_OPTIONS
-        \"/BASE:0x66000000\"
+    LINK_OPTIONS \"/BASE:0x66000000\"
 )
 
-# Zlib linking (same as original)
 qt_internal_extend_target(Svg CONDITION QT_FEATURE_system_zlib
-    LIBRARIES
-        WrapZLIB::WrapZLIB
+    LIBRARIES WrapZLIB::WrapZLIB
 )
 
 qt_internal_extend_target(Svg CONDITION NOT QT_FEATURE_system_zlib
-    LIBRARIES
-        Qt::ZlibPrivate
+    LIBRARIES Qt::ZlibPrivate
 )
-
-# Note: Header installation is handled by the portfile post-install section
-# since NO_SYNC_QT mode and our custom setup requires manual handling.
 ")
 
-# Add svg to the src/CMakeLists.txt subdirectories
-file(READ "${QTBASE_SOURCE_PATH}/src/CMakeLists.txt" _src_cmake)
-if(NOT _src_cmake MATCHES "add_subdirectory\\(svg\\)")
-    string(APPEND _src_cmake "\n# QtSvg module (integrated)\nadd_subdirectory(svg)\n")
-    file(WRITE "${QTBASE_SOURCE_PATH}/src/CMakeLists.txt" "${_src_cmake}")
+    file(READ "${QTBASE_SOURCE_PATH}/src/CMakeLists.txt" _src_cmake)
+    if(NOT _src_cmake MATCHES "add_subdirectory\\(svg\\)")
+        string(APPEND _src_cmake "\n# QtSvg module (integrated)\nadd_subdirectory(svg)\n")
+        file(WRITE "${QTBASE_SOURCE_PATH}/src/CMakeLists.txt" "${_src_cmake}")
+    endif()
 endif()
 
 # ============================================================================
@@ -236,84 +483,7 @@ get_filename_component(PYTHON3_PATH ${PYTHON3} DIRECTORY)
 vcpkg_add_to_path(${PYTHON3_PATH})
 
 # ============================================================================
-# Qt configuration options
-# ============================================================================
-
-# Feature options for HobbyCAD's needs
-set(FEATURE_OPTIONS
-    -DFEATURE_concurrent=ON
-    -DFEATURE_dbus=OFF
-    -DFEATURE_gui=ON
-    -DFEATURE_network=OFF
-    -DFEATURE_opengl=ON
-    -DFEATURE_printsupport=OFF
-    -DFEATURE_sql=OFF
-    -DFEATURE_testlib=OFF
-    -DFEATURE_widgets=ON
-    -DFEATURE_xml=ON
-)
-
-# Dependency configuration
-set(INPUT_OPTIONS
-    -DINPUT_doubleconversion=system
-    -DINPUT_freetype=system
-    -DINPUT_harfbuzz=system
-    -DINPUT_libjpeg=system
-    -DINPUT_libpng=system
-    -DINPUT_pcre=system
-)
-
-# Platform-specific options
-set(PLATFORM_OPTIONS "")
-if(VCPKG_TARGET_IS_WINDOWS)
-    list(APPEND PLATFORM_OPTIONS
-        -DFEATURE_opengl_desktop=ON
-    )
-elseif(VCPKG_TARGET_IS_OSX)
-    list(APPEND PLATFORM_OPTIONS
-        -DFEATURE_opengl_desktop=ON
-        -DCMAKE_OSX_DEPLOYMENT_TARGET=11.0
-    )
-endif()
-
-# Disable features not needed
-set(DISABLE_OPTIONS
-    -DCMAKE_DISABLE_FIND_PACKAGE_ATSPI2=ON
-    -DCMAKE_DISABLE_FIND_PACKAGE_Cups=ON
-    -DCMAKE_DISABLE_FIND_PACKAGE_DirectFB=ON
-    -DCMAKE_DISABLE_FIND_PACKAGE_EGL=ON
-    -DCMAKE_DISABLE_FIND_PACKAGE_Fontconfig=ON
-    -DCMAKE_DISABLE_FIND_PACKAGE_GLESv2=ON
-    -DCMAKE_DISABLE_FIND_PACKAGE_GLIB2=ON
-    -DCMAKE_DISABLE_FIND_PACKAGE_GSSAPI=ON
-    -DCMAKE_DISABLE_FIND_PACKAGE_GTK3=ON
-    -DCMAKE_DISABLE_FIND_PACKAGE_ICU=ON
-    -DCMAKE_DISABLE_FIND_PACKAGE_Libdrm=ON
-    -DCMAKE_DISABLE_FIND_PACKAGE_Libinput=ON
-    -DCMAKE_DISABLE_FIND_PACKAGE_Libproxy=ON
-    -DCMAKE_DISABLE_FIND_PACKAGE_LTTngUST=ON
-    -DCMAKE_DISABLE_FIND_PACKAGE_Mtdev=ON
-    -DCMAKE_DISABLE_FIND_PACKAGE_MySQL=ON
-    -DCMAKE_DISABLE_FIND_PACKAGE_ODBC=ON
-    -DCMAKE_DISABLE_FIND_PACKAGE_Oracle=ON
-    -DCMAKE_DISABLE_FIND_PACKAGE_PostgreSQL=ON
-    -DCMAKE_DISABLE_FIND_PACKAGE_SQLite3=ON
-    -DCMAKE_DISABLE_FIND_PACKAGE_Slog2=ON
-    -DCMAKE_DISABLE_FIND_PACKAGE_Tslib=ON
-    -DCMAKE_DISABLE_FIND_PACKAGE_Vulkan=ON
-    -DCMAKE_DISABLE_FIND_PACKAGE_WrapBrotli=ON
-    -DCMAKE_DISABLE_FIND_PACKAGE_WrapDBus1=ON
-    -DCMAKE_DISABLE_FIND_PACKAGE_WrapOpenSSL=ON
-    -DCMAKE_DISABLE_FIND_PACKAGE_X11=ON
-    -DCMAKE_DISABLE_FIND_PACKAGE_XCB=ON
-    -DCMAKE_DISABLE_FIND_PACKAGE_XKB=ON
-    -DCMAKE_DISABLE_FIND_PACKAGE_ZSTD=ON
-    -DCMAKE_DISABLE_FIND_PACKAGE_gbm=ON
-    -DCMAKE_DISABLE_FIND_PACKAGE_libb2=ON
-)
-
-# ============================================================================
-# Build Qt Base (with integrated SVG module)
+# Configure and build
 # ============================================================================
 
 vcpkg_cmake_configure(
@@ -324,49 +494,37 @@ vcpkg_cmake_configure(
         -DQT_BUILD_TESTS=OFF
         -DQT_BUILD_BENCHMARKS=OFF
         -DQT_FORCE_BUILD_TOOLS=ON
-        -DQT_USE_BUNDLED_BundledFreetype=OFF
-        -DQT_USE_BUNDLED_BundledHarfbuzz=OFF
-        -DQT_USE_BUNDLED_BundledLibpng=OFF
-        -DQT_USE_BUNDLED_BundledPcre2=OFF
-        -DQT_USE_BUNDLED_BundledZLIB=OFF
         -DFEATURE_relocatable=ON
         -DHOST_PERL=${PERL}
         ${FEATURE_OPTIONS}
         ${INPUT_OPTIONS}
         ${PLATFORM_OPTIONS}
         ${DISABLE_OPTIONS}
+        ${BUNDLE_OPTIONS}
 )
 
 vcpkg_cmake_install()
 
 # ============================================================================
-# Install QtSvg headers manually
+# Install QtSvg headers (when qtsvg feature is enabled)
 # ============================================================================
-# Qt's NO_SYNC_QT mode doesn't install headers properly, so we copy them
-# directly. The headers were already fixed during source preparation to
-# use local includes instead of broken relative paths.
 
-set(_svg_include_dest "${CURRENT_PACKAGES_DIR}/include/QtSvg")
-file(MAKE_DIRECTORY "${_svg_include_dest}")
+if(_HAS_QTSVG)
+    set(_svg_include_dest "${CURRENT_PACKAGES_DIR}/include/QtSvg")
+    file(MAKE_DIRECTORY "${_svg_include_dest}")
 
-# Copy all QtSvg headers from our prepared include directory
-file(GLOB _svg_headers "${QTBASE_SOURCE_PATH}/include/QtSvg/*")
-foreach(_header IN LISTS _svg_headers)
-    if(NOT IS_DIRECTORY "${_header}")
-        file(COPY "${_header}" DESTINATION "${_svg_include_dest}")
-    endif()
-endforeach()
+    file(GLOB _svg_headers "${QTBASE_SOURCE_PATH}/include/QtSvg/*")
+    foreach(_header IN LISTS _svg_headers)
+        if(NOT IS_DIRECTORY "${_header}")
+            file(COPY "${_header}" DESTINATION "${_svg_include_dest}")
+        endif()
+    endforeach()
+endif()
 
 # ============================================================================
 # Fix up cmake configs
 # ============================================================================
 
-# Qt's cmake structure is complex with many interdependent files that use
-# relative paths assuming lib/cmake/Qt6 structure. Rather than try to fix
-# all the paths, we keep cmake files in lib/cmake and create a wrapper
-# that redirects find_package to the correct location.
-
-# Create minimal config files in share/ that redirect to lib/cmake
 file(GLOB _qt6_cmake_dirs "${CURRENT_PACKAGES_DIR}/lib/cmake/Qt6*")
 foreach(_dir IN LISTS _qt6_cmake_dirs)
     get_filename_component(_comp "${_dir}" NAME)
@@ -377,19 +535,12 @@ foreach(_dir IN LISTS _qt6_cmake_dirs)
     endif()
 endforeach()
 
-# Fix Qt6Svg include directories
-# NO_SYNC_QT modules may not have correct include paths in their cmake configs.
-# The Qt6::Svg target needs include/QtSvg in its INTERFACE_INCLUDE_DIRECTORIES
-# so that #include <QSvgRenderer> works (not just #include <QtSvg/QSvgRenderer>).
-if(EXISTS "${CURRENT_PACKAGES_DIR}/lib/cmake/Qt6Svg/Qt6SvgTargets.cmake")
+if(_HAS_QTSVG AND EXISTS "${CURRENT_PACKAGES_DIR}/lib/cmake/Qt6Svg/Qt6SvgTargets.cmake")
     file(READ "${CURRENT_PACKAGES_DIR}/lib/cmake/Qt6Svg/Qt6SvgTargets.cmake" _svg_targets)
-    # Check if QtSvg include directory is already in the include paths
     if(NOT _svg_targets MATCHES "include/QtSvg")
-        # Add QtSvg to the include directories by appending to the file
         file(APPEND "${CURRENT_PACKAGES_DIR}/lib/cmake/Qt6Svg/Qt6SvgTargets.cmake"
 "\n# Fix include directories for NO_SYNC_QT module
 if(TARGET Qt6::Svg)
-    # Compute import prefix if not already set
     if(NOT DEFINED _IMPORT_PREFIX)
         get_filename_component(_IMPORT_PREFIX \"\${CMAKE_CURRENT_LIST_FILE}\" PATH)
         get_filename_component(_IMPORT_PREFIX \"\${_IMPORT_PREFIX}\" PATH)
@@ -408,8 +559,15 @@ endif()
     endif()
 endif()
 
-# Also create redirect for Qt6 itself
 file(MAKE_DIRECTORY "${CURRENT_PACKAGES_DIR}/share/Qt6")
+# Prepend find_dependency(Threads) to the installed Qt6Config.cmake
+# so Threads::Threads exists before Qt6Targets.cmake references it.
+set(_qt6_config "${CURRENT_PACKAGES_DIR}/lib/cmake/Qt6/Qt6Config.cmake")
+if(EXISTS "${_qt6_config}")
+    file(READ "${_qt6_config}" _qt6_config_content)
+    file(WRITE "${_qt6_config}" "include(CMakeFindDependencyMacro)\nfind_dependency(Threads)\n${_qt6_config_content}")
+endif()
+
 file(WRITE "${CURRENT_PACKAGES_DIR}/share/Qt6/Qt6Config.cmake"
     "include(\"\${CMAKE_CURRENT_LIST_DIR}/../../lib/cmake/Qt6/Qt6Config.cmake\")\n")
 
@@ -425,17 +583,13 @@ file(REMOVE_RECURSE
     "${CURRENT_PACKAGES_DIR}/debug/share"
 )
 
-# Note: Don't delete bin/ for static builds - Qt tools (moc, rcc, qtpaths, etc.)
-# are still needed for building applications that use Qt static libraries.
 if(VCPKG_LIBRARY_LINKAGE STREQUAL "static")
     file(REMOVE_RECURSE "${CURRENT_PACKAGES_DIR}/debug/bin")
 endif()
 
-# Remove any leftover BuildInternals
 file(REMOVE_RECURSE
     "${CURRENT_PACKAGES_DIR}/share/Qt6BuildInternals"
     "${CURRENT_PACKAGES_DIR}/share/Qt6/QtBuildInternals"
 )
 
-# Install license (LGPL covers both qtbase and qtsvg)
 vcpkg_install_copyright(FILE_LIST "${QTBASE_SOURCE_PATH}/LICENSES/LGPL-3.0-only.txt")

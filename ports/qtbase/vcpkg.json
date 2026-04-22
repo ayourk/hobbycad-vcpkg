@@ -1,34 +1,157 @@
 {
-  "$comment": "Qt 6 Base + SVG Modules for HobbyCAD static builds",
+  "$comment": "Qt 6.4.2 Base with selectable features (defaults off). Static linking preferred. qtsvg integrated via the svg feature.",
   "name": "qtbase",
   "version": "6.4.2",
-  "port-version": 24,
-  "description": "Qt Application Framework Base Module (Core, GUI, Widgets, OpenGL) + SVG Module",
+  "port-version": 25,
+  "description": "Qt Application Framework Base Module",
   "homepage": "https://www.qt.io/",
   "license": "LGPL-3.0-only",
   "supports": "!uwp & !android & !ios",
   "dependencies": [
     "double-conversion",
-    {
-      "name": "freetype",
-      "default-features": false
-    },
-    "harfbuzz",
-    "libjpeg-turbo",
-    "libpng",
-    {
-      "name": "opengl",
-      "platform": "!osx"
-    },
     "pcre2",
-    {
-      "name": "vcpkg-cmake",
-      "host": true
-    },
-    {
-      "name": "vcpkg-cmake-config",
-      "host": true
-    },
+    { "name": "vcpkg-cmake", "host": true },
+    { "name": "vcpkg-cmake-config", "host": true },
     "zlib"
-  ]
+  ],
+  "features": {
+    "thread": {
+      "description": "Thread support (QThread and related classes)"
+    },
+    "concurrent": {
+      "description": "High-level multi-threading API (Qt Concurrent)",
+      "dependencies": [
+        { "name": "qtbase", "default-features": false, "features": ["thread"] }
+      ]
+    },
+    "network": {
+      "description": "Qt Network module"
+    },
+    "openssl": {
+      "description": "OpenSSL support for Qt Network",
+      "dependencies": [
+        "openssl",
+        { "name": "qtbase", "default-features": false, "features": ["network"] }
+      ]
+    },
+    "brotli": {
+      "description": "Brotli decompression support for Qt Network",
+      "dependencies": [
+        "brotli",
+        { "name": "qtbase", "default-features": false, "features": ["network"] }
+      ]
+    },
+    "gui": {
+      "description": "Qt GUI module",
+      "dependencies": [
+        { "name": "opengl", "platform": "!osx" },
+        { "name": "qtbase", "default-features": false, "features": ["opengl"] }
+      ]
+    },
+    "opengl": {
+      "description": "OpenGL support",
+      "dependencies": [
+        "opengl",
+        { "name": "qtbase", "default-features": false, "features": ["gui"] }
+      ]
+    },
+    "freetype": {
+      "description": "FreeType font engine",
+      "dependencies": [
+        { "name": "freetype", "default-features": false },
+        { "name": "qtbase", "default-features": false, "features": ["gui"] }
+      ]
+    },
+    "harfbuzz": {
+      "description": "HarfBuzz text shaping",
+      "dependencies": [
+        "harfbuzz",
+        { "name": "qtbase", "default-features": false, "features": ["gui"] }
+      ]
+    },
+    "jpeg": {
+      "description": "JPEG image support",
+      "dependencies": [
+        "libjpeg-turbo",
+        { "name": "qtbase", "default-features": false, "features": ["gui"] }
+      ]
+    },
+    "printsupport": {
+      "description": "Qt PrintSupport module",
+      "dependencies": [
+        { "name": "qtbase", "default-features": false, "features": ["widgets"] }
+      ]
+    },
+    "png": {
+      "description": "PNG image support",
+      "dependencies": [
+        "libpng",
+        { "name": "qtbase", "default-features": false, "features": ["gui"] }
+      ]
+    },
+    "widgets": {
+      "description": "Qt Widgets module",
+      "dependencies": [
+        { "name": "qtbase", "default-features": false, "features": ["gui"] }
+      ]
+    },
+    "dbus": {
+      "description": "Qt D-Bus module",
+      "dependencies": [
+        { "name": "dbus", "default-features": false },
+        { "name": "qtbase", "host": true, "default-features": false, "features": ["dbus"] },
+        { "name": "qtbase", "default-features": false, "features": ["thread"] }
+      ]
+    },
+    "sql": {
+      "description": "Qt SQL module",
+      "dependencies": [
+        { "name": "qtbase", "default-features": false, "features": ["concurrent"] }
+      ]
+    },
+    "sql-sqlite": {
+      "description": "SQLite SQL driver",
+      "dependencies": [
+        "sqlite3",
+        { "name": "qtbase", "default-features": false, "features": ["sql"] }
+      ]
+    },
+    "sql-psql": {
+      "description": "PostgreSQL SQL driver",
+      "dependencies": [
+        "libpq",
+        { "name": "qtbase", "default-features": false, "features": ["sql"] }
+      ]
+    },
+    "icu": {
+      "description": "ICU unicode support",
+      "dependencies": [
+        "icu"
+      ]
+    },
+    "zstd": {
+      "description": "Zstandard compression support",
+      "dependencies": [
+        "zstd"
+      ]
+    },
+    "testlib": {
+      "description": "Qt Test module"
+    },
+    "xml": {
+      "description": "Qt XML module"
+    },
+    "qtsvg": {
+      "description": "Qt SVG module (integrated into qtbase build tree)",
+      "dependencies": [
+        { "name": "qtbase", "default-features": false, "features": ["gui"] }
+      ]
+    },
+    "sessionmanager": {
+      "description": "Session manager support",
+      "dependencies": [
+        { "name": "qtbase", "default-features": false, "features": ["gui"] }
+      ]
+    }
+  }
 }
