@@ -2,20 +2,42 @@
 # Upstream: https://github.com/solvespace/solvespace
 
 set(VERSION 3.2)
-# Upstream commit: 02ec4e57aa90f70052f6a312aa5c286a64a7ec90 (2026-02-04)
+set(SNAPSHOT 20260908)
+# Upstream master 952c11c0 (2026-09-01). The snapshot date records when the
+# HobbyCAD series was cut against it, not an upstream move.
+#
+# The +p1 suffix is the HobbyCAD patch-series level. The series is DELIVERED
+# INSIDE THE TARBALL rather than applied here: every channel (Debian/PPA,
+# vcpkg, Homebrew) needs the same series (nineteen patches at this snapshot: solver fixes,
+# free-parameter reporting, drag weights, curvature and rational-cubic
+# constraints, operand validation, version reporting), so carrying it once in the
+# source is one place to maintain instead of three, and this port no longer
+# applies any patch at all.
+#
+# The series itself is not gone -- it lives at
+# HobbyCAD-libs/solvespace/patch-series/ and is the INPUT to make-orig.sh,
+# which regenerates this tarball reproducibly. That is what keeps an upstream
+# resync tractable: rebase the series onto a newer snapshot, rerun the script.
+#
+# Two independent axes: git.<snapshot> says which upstream, +p<level> says
+# which revision of our series. The level counts releases against ONE
+# snapshot and restarts at a new one, so the snapshot and the level together
+# identify the contents.
+#
+# NOTE the dots: GitHub release assets normalize "~" to "." in the stored
+# filename, so a URL written with a tilde 404s no matter how correct the
+# upload was.
 
 vcpkg_download_distfile(ARCHIVE
     URLS
-        "https://github.com/ayourk/hobbycad-vcpkg/releases/download/sources/libslvs_${VERSION}.git.20260208.orig.tar.gz"
-    FILENAME "libslvs_${VERSION}.git.20260208.orig.tar.gz"
-    SHA512 a95c2dbb7af60e1a172fdedf26a0e5de5ebfe8ebf16cc0e4933c3dcc28c537873620703a78ea0af3b2df14e96d406dfe2565f9fe9a078621c67a1e7e40debcbe
+        "https://github.com/ayourk/hobbycad-vcpkg/releases/download/sources/libslvs_${VERSION}.git.${SNAPSHOT}+p1.orig.tar.gz"
+    FILENAME "libslvs_${VERSION}.git.${SNAPSHOT}+p1.orig.tar.gz"
+    SHA512 9007d52db357c15407172d0bef2df55f8b9fd436a43bcf79f6e872474605d50faea1f1b5ae520469cbb84536f9364c1812871585065a01a6fefc461b043b7b59
 )
 
 vcpkg_extract_source_archive(
     SOURCE_PATH
     ARCHIVE "${ARCHIVE}"
-    PATCHES
-        0001-handle-missing-git-directory.patch
 )
 
 # ---------------------------------------------------------------------------
@@ -98,9 +120,51 @@ string(REPLACE "add_library(ZLIB::ZLIB" "# add_library(ZLIB::ZLIB" _cmakelists "
 string(REPLACE "set(CMAKE_CXX_STANDARD 11)" "set(CMAKE_CXX_STANDARD 14)" _cmakelists "${_cmakelists}")
 file(WRITE "${SOURCE_PATH}/CMakeLists.txt" "${_cmakelists}")
 
+# 4. Library type follows the triplet. The fork hard-codes
+#    add_library(slvs SHARED) and installs it with no RUNTIME destination,
+#    so on Windows the DLL was linked and then never installed (an import
+#    library pointing at nothing), and on a static triplet a shared library
+#    was built regardless (dylibs on x64-osx-static). HobbyCAD's Windows and
+#    macOS builds are static by design (x64-windows-static-md, *-osx-static):
+#    on a static triplet the target becomes STATIC and defines STATIC_LIB;
+#    on a dynamic triplet the DLL goes to bin/ like every other port.
+file(READ "${SOURCE_PATH}/src/slvs/CMakeLists.txt" _slvs_cmake)
+if(VCPKG_LIBRARY_LINKAGE STREQUAL "static")
+    # The solver's temporary heap is mimalloc, which the fork links into the
+    # shared slvs PRIVATEly. A static archive built from the same rules would
+    # leave mi_heap_new and friends unresolved for every consumer (LNK2019 in
+    # HobbyCAD's link), so mimalloc's objects are compiled into the archive:
+    # MI_BUILD_OBJECT=ON below provides mimalloc-obj (mimalloc's single
+    # translation unit) and the static target takes its objects.
+    string(REPLACE "add_library(slvs SHARED)"
+                   "add_library(slvs STATIC)\ntarget_compile_definitions(slvs PUBLIC STATIC_LIB)\ntarget_sources(slvs PRIVATE $<TARGET_OBJECTS:mimalloc-obj>)"
+                   _slvs_cmake "${_slvs_cmake}")
+    set(_slvs_static_options -DMI_BUILD_OBJECT=ON)
+else()
+    set(_slvs_static_options "")
+    string(REPLACE [[    LIBRARY       DESTINATION ${CMAKE_INSTALL_LIBDIR}]]
+                   [[    RUNTIME       DESTINATION ${CMAKE_INSTALL_BINDIR}
+    LIBRARY       DESTINATION ${CMAKE_INSTALL_LIBDIR}]]
+                   _slvs_cmake "${_slvs_cmake}")
+endif()
+file(WRITE "${SOURCE_PATH}/src/slvs/CMakeLists.txt" "${_slvs_cmake}")
+
+# 5. The CRT follows the triplet. The fork forces /MT on MSVC through
+#    CMAKE_USER_MAKE_RULES_OVERRIDE (cmake/c_flag_overrides.cmake and
+#    cxx_flag_overrides.cmake), which is right for SolveSpace's own
+#    standalone binaries and wrong inside vcpkg: x64-windows-static-md wants
+#    the dynamic CRT (/MD), and a /MT slvs.lib linked into an /MD program is
+#    an LNK2038 RuntimeLibrary mismatch. Emptying the overrides leaves the
+#    choice to vcpkg's toolchain (VCPKG_CRT_LINKAGE).
+foreach(_ovr c_flag_overrides.cmake cxx_flag_overrides.cmake)
+    file(WRITE "${SOURCE_PATH}/cmake/${_ovr}"
+        "# Neutralized by the vcpkg port: the triplet chooses the CRT.\n")
+endforeach()
+
 vcpkg_cmake_configure(
     SOURCE_PATH "${SOURCE_PATH}"
     OPTIONS
+        ${_slvs_static_options}
         -DENABLE_GUI=OFF
         -DENABLE_CLI=OFF
         -DENABLE_OPENMP=OFF
@@ -111,14 +175,22 @@ vcpkg_cmake_configure(
 
 vcpkg_cmake_install()
 
-# Guard: debug cmake config may not be installed
-if(NOT EXISTS "${CURRENT_PACKAGES_DIR}/debug/lib/cmake/slvs")
-    file(MAKE_DIRECTORY "${CURRENT_PACKAGES_DIR}/debug/lib/cmake/slvs")
-endif()
-
-vcpkg_cmake_config_fixup(CONFIG_PATH lib/cmake/slvs)
+# The fork installs no CMake package config (consumers use pkg-config or
+# find_library), so there is nothing to fix up; the empty lib/cmake/slvs
+# directories an earlier guard created only drew post-build warnings.
 vcpkg_fixup_pkgconfig()
 
-file(REMOVE_RECURSE "${CURRENT_PACKAGES_DIR}/debug/include")
+# On a static triplet the installed header must not declare dllimport:
+# slvs.h keys that on STATIC_LIB, which CMake consumers never define.
+if(VCPKG_LIBRARY_LINKAGE STREQUAL "static")
+    vcpkg_replace_string("${CURRENT_PACKAGES_DIR}/include/slvs.h"
+        "#if defined(WIN32) && !defined(STATIC_LIB)"
+        "#define STATIC_LIB 1 /* vcpkg static triplet: no dllimport */\n#if defined(WIN32) && !defined(STATIC_LIB)")
+endif()
+
+file(REMOVE_RECURSE
+    "${CURRENT_PACKAGES_DIR}/debug/include"
+    "${CURRENT_PACKAGES_DIR}/lib/cmake"
+    "${CURRENT_PACKAGES_DIR}/debug/lib/cmake")
 
 vcpkg_install_copyright(FILE_LIST "${SOURCE_PATH}/COPYING.txt")

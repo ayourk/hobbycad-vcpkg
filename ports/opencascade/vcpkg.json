@@ -1,8 +1,8 @@
 {
   "name": "opencascade",
-  "version": "7.9.2",
-  "port-version": 4,
-  "description": "Open CASCADE Technology (OCCT) — 3D surface and solid modeling",
+  "version": "8.0.1",
+  "port-version": 0,
+  "description": "Open CASCADE Technology (OCCT) \u2014 3D surface and solid modeling",
   "homepage": "https://dev.opencascade.org/",
   "license": "LGPL-2.1-only",
   "dependencies": [

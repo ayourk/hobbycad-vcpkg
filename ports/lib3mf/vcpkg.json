@@ -1,8 +1,8 @@
 {
   "name": "lib3mf",
-  "version": "2.4.1",
+  "version": "2.5.0",
   "port-version": 0,
-  "description": "lib3mf — implementation of the 3D Manufacturing Format file standard",
+  "description": "lib3mf, the 3D Manufacturing Format library (upstream 2.5.0 with the HobbyCAD +p1 build-system series; the PPA's tarball without the prebuilt code-generator binaries)",
   "homepage": "https://github.com/3MFConsortium/lib3mf",
   "license": "BSD-2-Clause",
   "supports": "!uwp",

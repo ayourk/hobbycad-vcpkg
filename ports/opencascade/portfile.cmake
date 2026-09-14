@@ -1,20 +1,33 @@
 # OpenCASCADE Technology (OCCT) — 3D surface and solid modeling
 # Upstream: https://dev.opencascade.org/
 
-set(VERSION 7.9.2)
-# Upstream tag: V7_9_2
+set(VERSION 8.0.1)
+# Upstream tag: V8_0_1
+#
+# Moved to 8.0.1 to match the PPA. HobbyCAD spans 7.9.x and 8.0.x with one
+# #if OCC_VERSION_MAJOR guard, so leaving this channel on 7.9.2 while Linux
+# moved would mean the two exercised different branches of that guard and
+# nobody was testing the combination anyone actually shipped.
+#
+# The tarball is the PPA's opencascade_8.0.1+p1.orig.tar.xz: stock upstream
+# V8_0_1 with the HobbyCAD BSD portability series baked in (+p1; OpenCASCADE
+# issue #1515: locale detection, OSD_Path, OSD_MemInfo, Standard_CString,
+# occt_csf.cmake). The same file feeds the PPA, Homebrew and the BSD ports, so
+# this port no longer carries a BSD patch of its own; the earlier
+# 0001-clocale-posix2008-on-bsd.patch was a first cut of that series and
+# would have re-added NetBSD, which has newlocale() but no uselocale().
 
 vcpkg_download_distfile(ARCHIVE
     URLS
-        "https://github.com/ayourk/hobbycad-vcpkg/releases/download/sources/opencascade_${VERSION}+dfsg.orig.tar.xz"
-    FILENAME "opencascade_${VERSION}+dfsg.orig.tar.xz"
-    SHA512 4dd85fa698561969de035a8a82b5fcfe034bd8806f07ed26f1d23a69cb3b71de6a03c2425970dd5cd9de69258a5639003d28859aca398d09f809ca1b05f490ad
+        "https://github.com/ayourk/hobbycad-vcpkg/releases/download/sources/opencascade_${VERSION}+p1.orig.tar.xz"
+    FILENAME "opencascade_${VERSION}+p1.orig.tar.xz"
+    SHA512 66e92df6d9a37493d58e663fe221becb93c78ef6b9886b35683a499abae68b23dde104c66532781787423f843efd146e8d556e86eb3d6b15778c640fe188c5f0
 )
 
 vcpkg_extract_source_archive(
     SOURCE_PATH
     ARCHIVE "${ARCHIVE}"
-    SOURCE_BASE "occt-V7_9_2"
+    SOURCE_BASE "opencascade-8.0.1+p1"
     PATCHES
         fix-rapidjson-header-only.patch
 )
@@ -85,6 +98,26 @@ set(OpenCASCADE_INSTALL_PREFIX "${_VCPKG_OCCT_ROOT}")
 set(OpenCASCADE_INCLUDE_DIR "${_VCPKG_OCCT_ROOT}/include/opencascade")
 unset(_VCPKG_OCCT_ROOT)
 ]])
+
+# OCCT drops its environment scripts (env, custom, draw) and copies of the
+# license texts at the prefix root and under bin/. They carry absolute build
+# paths and mean nothing inside a vcpkg tree; the license is installed as the
+# port's copyright below. In a static build bin/ then holds nothing.
+file(GLOB _occt_stray
+    "${CURRENT_PACKAGES_DIR}/*.sh" "${CURRENT_PACKAGES_DIR}/*.bat"
+    "${CURRENT_PACKAGES_DIR}/*.txt"
+    "${CURRENT_PACKAGES_DIR}/debug/*.sh" "${CURRENT_PACKAGES_DIR}/debug/*.bat"
+    "${CURRENT_PACKAGES_DIR}/debug/*.txt"
+    "${CURRENT_PACKAGES_DIR}/bin/*.sh" "${CURRENT_PACKAGES_DIR}/bin/*.bat"
+    "${CURRENT_PACKAGES_DIR}/debug/bin/*.sh" "${CURRENT_PACKAGES_DIR}/debug/bin/*.bat")
+if(_occt_stray)
+    file(REMOVE ${_occt_stray})
+endif()
+if(VCPKG_LIBRARY_LINKAGE STREQUAL "static")
+    file(REMOVE_RECURSE "${CURRENT_PACKAGES_DIR}/bin" "${CURRENT_PACKAGES_DIR}/debug/bin")
+endif()
+
+file(INSTALL "${CMAKE_CURRENT_LIST_DIR}/usage" DESTINATION "${CURRENT_PACKAGES_DIR}/share/${PORT}")
 
 # Remove empty directories and debug includes
 file(REMOVE_RECURSE

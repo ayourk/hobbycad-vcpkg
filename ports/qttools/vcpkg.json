@@ -1,0 +1,104 @@
+{
+  "name": "qttools",
+  "version": "6.4.2",
+  "port-version": 0,
+  "description": "Qt Tools 6.4.2 for the registry's qtbase: lrelease, lupdate and lconvert by default (HobbyCAD compiles its translation catalogs with lrelease); Linguist, Designer, Assistant and the rest behind features. From claudeqt-vcpkg's qttools 6.4.2#8 minus its host dependency on itself: that pulled a second, dynamic qtbase for the host triplet (which fails on x64-windows), and the build tools this port needs come from the target qtbase when host and target share an architecture.",
+  "homepage": "https://www.qt.io/",
+  "license": null,
+  "dependencies": [
+    {
+      "name": "vcpkg-cmake",
+      "host": true
+    },
+    {
+      "name": "vcpkg-cmake-config",
+      "host": true
+    },
+    {
+      "name": "qtbase",
+      "default-features": false,
+      "features": [
+        "network",
+        "thread"
+      ]
+    }
+  ],
+  "features": {
+    "assistant": {
+      "description": "Build Qt Assistant (requires litehtml)",
+      "dependencies": [
+        "litehtml",
+        {
+          "name": "qtbase",
+          "default-features": false,
+          "features": [
+            "network",
+            "png",
+            "sql-sqlite",
+            "widgets"
+          ]
+        }
+      ]
+    },
+    "designer": {
+      "description": "Build Qt Designer",
+      "dependencies": [
+        {
+          "name": "qtbase",
+          "default-features": false,
+          "features": [
+            "network"
+          ]
+        }
+      ]
+    },
+    "linguist": {
+      "description": "Build the Qt Linguist GUI (lrelease, lupdate and lconvert are always built)",
+      "dependencies": [
+        {
+          "name": "qtbase",
+          "default-features": false,
+          "features": [
+            "widgets",
+            "printsupport"
+          ]
+        }
+      ]
+    },
+    "qdbus": {
+      "description": "Build qdbusviewer",
+      "dependencies": [
+        {
+          "name": "qtbase",
+          "default-features": false,
+          "features": [
+            "dbus",
+            "widgets"
+          ]
+        }
+      ]
+    },
+    "qdoc": {
+      "description": "Build QDoc.",
+      "dependencies": [
+        "llvm"
+      ]
+    },
+    "qml": {
+      "description": "Build QML imports",
+      "dependencies": [
+        {
+          "name": "qtbase",
+          "default-features": false,
+          "features": [
+            "gui"
+          ]
+        },
+        {
+          "name": "qtdeclarative",
+          "default-features": false
+        }
+      ]
+    }
+  }
+}

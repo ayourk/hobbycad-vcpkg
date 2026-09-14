@@ -1,0 +1,22 @@
+Description: Gate the Linguist GUI on Qt::PrintSupport as well as Qt::Widgets
+ src/linguist/linguist links Qt::PrintSupport, but the directory is added
+ whenever Qt::Widgets exists. With a Qt built without printsupport, CMake's
+ generate step then fails on the missing target, and with it the whole of
+ qttools, including lrelease and lupdate, which need only QtCore. Checking
+ the target the app actually links makes a widgets-only Qt build the
+ command-line tools and skip the GUI.
+Author: Aaron Yourk <ayourk@gmail.com>
+Forwarded: not-yet
+Last-Update: 2026-09-13
+---
+--- a/src/linguist/CMakeLists.txt
++++ b/src/linguist/CMakeLists.txt
+@@ -14,7 +14,7 @@
+ add_subdirectory(lrelease-pro)
+ add_subdirectory(lupdate)
+ add_subdirectory(lupdate-pro)
+-if(QT_FEATURE_process AND QT_FEATURE_pushbutton AND QT_FEATURE_toolbutton AND TARGET Qt::Widgets AND NOT no-png)
++if(QT_FEATURE_process AND QT_FEATURE_pushbutton AND QT_FEATURE_toolbutton AND TARGET Qt::Widgets AND TARGET Qt::PrintSupport AND NOT no-png)
+     add_subdirectory(linguist)
+ endif()
+ 
