@@ -18,9 +18,15 @@ vcpkg_extract_source_archive(
 
 string(COMPARE EQUAL "${VCPKG_LIBRARY_LINKAGE}" "dynamic" BUILD_SHARED)
 
+# OpenMesh's CMakeLists has its "set(CMAKE_CXX_STANDARD 11)" commented out,
+# so the compiler's default decides. Apple clang still defaults to C++98
+# and the headers (auto return types, range for) fail to compile; GCC and
+# MSVC happened to default high enough. HobbyCAD builds as C++17.
 vcpkg_cmake_configure(
     SOURCE_PATH "${SOURCE_PATH}"
     OPTIONS
+        -DCMAKE_CXX_STANDARD=17
+        -DCMAKE_CXX_STANDARD_REQUIRED=ON
         -DBUILD_APPS=OFF
         -DOPENMESH_BUILD_SHARED=${BUILD_SHARED}
         -DOPENMESH_DOCS=OFF

@@ -26,18 +26,22 @@ For other projects, add this registry to your `vcpkg-configuration.json`:
 {
   "default-registry": {
     "kind": "builtin",
-    "baseline": "2026.01.16"
+    "baseline": "2026.02.27"
   },
   "registries": [
     {
       "kind": "git",
       "repository": "https://github.com/ayourk/hobbycad-vcpkg",
       "baseline": "REPLACE_WITH_LATEST_COMMIT_HASH",
-      "packages": ["libslvs", "openmesh", "lib3mf", "meshfix"]
+      "packages": ["freetype", "lib3mf", "libgit2", "libslvs", "meshfix", "opencascade", "openmesh", "qtbase", "qtsvg", "qttools"]
     }
   ]
 }
 ```
+
+List every port you take from this registry in `packages`; a port left
+out is looked up in the builtin registry instead (Microsoft's qttools
+rather than this one, for example).
 
 Update the `baseline` hash after each commit to this registry.  To get the
 latest commit hash, visit the
