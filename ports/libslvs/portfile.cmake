@@ -2,15 +2,18 @@
 # Upstream: https://github.com/solvespace/solvespace
 
 set(VERSION 3.2)
-set(SNAPSHOT 20260908)
+set(SNAPSHOT 20260914)
 # Upstream master 952c11c0 (2026-09-01). The snapshot date records when the
 # HobbyCAD series was cut against it, not an upstream move.
 #
 # The +p1 suffix is the HobbyCAD patch-series level. The series is DELIVERED
 # INSIDE THE TARBALL rather than applied here: every channel (Debian/PPA,
-# vcpkg, Homebrew) needs the same series (nineteen patches at this snapshot: solver fixes,
-# free-parameter reporting, drag weights, curvature and rational-cubic
-# constraints, operand validation, version reporting), so carrying it once in the
+# vcpkg, Homebrew) needs the same series (twenty-seven patches at this snapshot:
+# solver fixes, free-parameter reporting, drag weights, curvature and
+# rational-cubic constraints, operand validation, version reporting,
+# trust-region Newton steps, inequality and circle-line tangent constraints,
+# live-source transform points, the point-on-line initialization fix), so
+# carrying it once in the
 # source is one place to maintain instead of three, and this port no longer
 # applies any patch at all.
 #
@@ -32,7 +35,7 @@ vcpkg_download_distfile(ARCHIVE
     URLS
         "https://github.com/ayourk/hobbycad-vcpkg/releases/download/sources/libslvs_${VERSION}.git.${SNAPSHOT}+p1.orig.tar.gz"
     FILENAME "libslvs_${VERSION}.git.${SNAPSHOT}+p1.orig.tar.gz"
-    SHA512 9007d52db357c15407172d0bef2df55f8b9fd436a43bcf79f6e872474605d50faea1f1b5ae520469cbb84536f9364c1812871585065a01a6fefc461b043b7b59
+    SHA512 ba63e5590b2c0d4fdbfd9c7abca23a24dbb412fd8610829c14960175c82f209318e776b1c320a130fe242730bf19b34dbfbfbfc60cbe2e5b59130f3c5a792521
 )
 
 vcpkg_extract_source_archive(

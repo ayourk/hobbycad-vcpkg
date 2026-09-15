@@ -69,7 +69,7 @@ Each port downloads source tarballs hosted as release assets on this repo
 
 | Port | Upstream | Source Archive |
 |---|---|---|
-| `libslvs` | [solvespace/solvespace](https://github.com/solvespace/solvespace) master `952c11c0`, HobbyCAD patches cut 2026-09-08 | `libslvs_3.2.git.20260908+p1.orig.tar.gz` |
+| `libslvs` | [solvespace/solvespace](https://github.com/solvespace/solvespace) master `952c11c0`, HobbyCAD patches cut 2026-09-14 | `libslvs_3.2.git.20260914+p1.orig.tar.gz` |
 | `opencascade` | [Open-Cascade-SAS/OCCT](https://github.com/Open-Cascade-SAS/OCCT) @ `V8_0_1` + HobbyCAD BSD patches | `opencascade_8.0.1+p1.orig.tar.xz` |
 | `openmesh` | [OpenMesh/OpenMesh](https://gitlab.vci.rwth-aachen.de:9000/OpenMesh/OpenMesh) @ `OpenMesh-11.0.0` | `libopenmesh_11.0.0.git.20260208.orig.tar.gz` |
 | `lib3mf` | [3MFConsortium/lib3mf](https://github.com/3MFConsortium/lib3mf) @ `v2.5.0` + HobbyCAD build-system patches, without the prebuilt generator binaries | `lib3mf_2.5.0+p1.orig.tar.xz` |
@@ -82,7 +82,7 @@ When updating a port to a new upstream version:
 1. Build and test in the PPA first
 2. Upload the `.orig.tar.gz` to the `sources` release on this repo
    (GitHub stores a `~` in the asset name as `.`, so the URL spells
-   `libslvs_3.2.git.20260908+p1...` for the PPA's `3.2.git~20260908+p1`)
+   `libslvs_3.2.git.20260914+p1...` for the PPA's `3.2.git~20260914+p1`)
 3. Update `VERSION`, filenames, and `SHA512` in the portfile (`sha512sum <file>.tar.gz`)
 4. Update `versions/` (see Maintainer Notes) in the same commit as the port
 

@@ -1,8 +1,8 @@
 {
   "name": "libslvs",
   "version-string": "3.2p1",
-  "port-version": 0,
-  "description": "SolveSpace geometric constraint solver library with the HobbyCAD patch series baked in (3.2p1: solver fixes, free-parameter reporting, drag weights, curvature and rational-cubic constraints, operand validation, version reporting)",
+  "port-version": 1,
+  "description": "SolveSpace geometric constraint solver library with the HobbyCAD patch series baked in (3.2p1, cut 2026-09-14: solver fixes, free-parameter reporting, drag weights, curvature and rational-cubic constraints, operand validation, trust-region Newton steps, inequality and circle-line tangent constraints, live-source transform points, version reporting)",
   "homepage": "https://github.com/solvespace/solvespace",
   "license": "GPL-3.0-only",
   "supports": "!uwp",
