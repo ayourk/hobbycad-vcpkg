@@ -486,6 +486,16 @@ vcpkg_add_to_path(${PYTHON3_PATH})
 # Configure and build
 # ============================================================================
 
+# The disable switches above turn off what Qt would otherwise find on SOME
+# platform (X11 and XCB on Linux, the SQL drivers wherever their client
+# libraries exist); elsewhere nothing reads them, which is expected.
+set(_qt_maybe_unused "")
+foreach(_opt IN LISTS FEATURE_OPTIONS PLATFORM_OPTIONS DISABLE_OPTIONS)
+    if(_opt MATCHES "^-D(CMAKE_DISABLE_FIND_PACKAGE_[A-Za-z0-9_]+|FEATURE_[A-Za-z0-9_]+)=")
+        list(APPEND _qt_maybe_unused "${CMAKE_MATCH_1}")
+    endif()
+endforeach()
+
 vcpkg_cmake_configure(
     SOURCE_PATH "${QTBASE_SOURCE_PATH}"
     OPTIONS
@@ -501,6 +511,8 @@ vcpkg_cmake_configure(
         ${PLATFORM_OPTIONS}
         ${DISABLE_OPTIONS}
         ${BUNDLE_OPTIONS}
+    MAYBE_UNUSED_VARIABLES
+        ${_qt_maybe_unused}
 )
 
 vcpkg_cmake_install()
@@ -573,6 +585,74 @@ file(WRITE "${CURRENT_PACKAGES_DIR}/share/Qt6/Qt6Config.cmake"
 
 vcpkg_copy_pdbs()
 
+# Qt records two build-machine paths here: the directory it was installed
+# into, which a later Qt module build falls back to as its prefix, and its
+# source tree, which vcpkg deletes after the build. The file's own location
+# gives the first portably; the second has no meaning once installed.
+set(_qtbi_extra "${CURRENT_PACKAGES_DIR}/lib/cmake/Qt6BuildInternals/QtBuildInternalsExtra.cmake")
+if(EXISTS "${_qtbi_extra}")
+    file(READ "${_qtbi_extra}" _qtbi_content)
+    string(REGEX REPLACE "set\\(qtbi_orig_prefix \"[^\"]*\"\\)"
+        "get_filename_component(qtbi_orig_prefix \"\${CMAKE_CURRENT_LIST_DIR}/../../..\" ABSOLUTE)"
+        _qtbi_content "${_qtbi_content}")
+    string(REGEX REPLACE "set\\(QT_SOURCE_TREE \"[^\"]*\""
+        "set(QT_SOURCE_TREE \"\""
+        _qtbi_content "${_qtbi_content}")
+    file(WRITE "${_qtbi_extra}" "${_qtbi_content}")
+endif()
+
+# The qt-cmake wrappers record the CMake that built Qt and fall back to the
+# cmake on PATH when that one is missing. The recorded one is vcpkg's own
+# download on the build machine, so the fallback is what every user gets
+# anyway; clearing it keeps the build machine's path out of the package.
+# (The Windows .bat wrappers carry no such path.)
+foreach(_wrapper IN ITEMS qt-cmake qt-cmake-private)
+    set(_wrapper_path "${CURRENT_PACKAGES_DIR}/bin/${_wrapper}")
+    if(EXISTS "${_wrapper_path}")
+        file(READ "${_wrapper_path}" _wrapper_content)
+        string(REGEX REPLACE "original_cmake_path=\"[^\"]*\"" "original_cmake_path=\"\""
+            _wrapper_content "${_wrapper_content}")
+        file(WRITE "${_wrapper_path}" "${_wrapper_content}")
+    endif()
+endforeach()
+
+# The host tools (moc, rcc, uic, qmake and the rest) move out of bin/, where
+# vcpkg expects no executables, into tools/qtbase, as the qttools port does
+# with its own. Qt's CMake targets are pointed at the new place, and a qt.conf
+# beside qmake keeps its prefix. Windows only: that is where the check flags
+# them and where this has been built and tested.
+#
+# bin/ itself stays, even in a static build: on Windows it is Qt's
+# INSTALL_LIBEXECDIR, and every later Qt module build (qttools, qtsvg) runs
+# bin/syncqt.pl from there. Deleting it breaks them at configure.
+if(VCPKG_TARGET_IS_WINDOWS)
+    file(GLOB _qt_tools "${CURRENT_PACKAGES_DIR}/bin/*.exe")
+    if(_qt_tools)
+        file(MAKE_DIRECTORY "${CURRENT_PACKAGES_DIR}/tools/${PORT}")
+        file(GLOB_RECURSE _qt_targets_files "${CURRENT_PACKAGES_DIR}/lib/cmake/Qt6*/Qt6*Targets*.cmake")
+        foreach(_tool IN LISTS _qt_tools)
+            get_filename_component(_name "${_tool}" NAME)
+            file(RENAME "${_tool}" "${CURRENT_PACKAGES_DIR}/tools/${PORT}/${_name}")
+            foreach(_f IN LISTS _qt_targets_files)
+                foreach(_bin IN ITEMS "bin" "./bin")
+                    vcpkg_replace_string("${_f}" "{_IMPORT_PREFIX}/${_bin}/${_name}"
+                        "{_IMPORT_PREFIX}/tools/${PORT}/${_name}" IGNORE_UNCHANGED)
+                endforeach()
+            endforeach()
+        endforeach()
+        file(WRITE "${CURRENT_PACKAGES_DIR}/tools/${PORT}/qt.conf"
+            "[Paths]\nPrefix = ../..\nBinaries = tools/${PORT}\nHostBinaries = tools/${PORT}\n")
+    endif()
+    set(VCPKG_POLICY_DLLS_IN_STATIC_LIBRARY enabled)
+endif()
+
+# Qt's CMake packages stay in lib/cmake, where Qt6Config.cmake looks for its
+# components (lib/cmake/Qt6<Name>) and helper scripts; share/ holds only the
+# forwarders written above. Moving the packages would mean rewriting the
+# relative paths inside every Qt config file, so those two checks are off.
+set(VCPKG_POLICY_SKIP_MISPLACED_CMAKE_FILES_CHECK enabled)
+set(VCPKG_POLICY_SKIP_LIB_CMAKE_MERGE_CHECK enabled)
+
 # ============================================================================
 # Clean up
 # ============================================================================
@@ -591,5 +671,19 @@ file(REMOVE_RECURSE
     "${CURRENT_PACKAGES_DIR}/share/Qt6BuildInternals"
     "${CURRENT_PACKAGES_DIR}/share/Qt6/QtBuildInternals"
 )
+
+# Qt installs a few directories that end up empty on this platform (the
+# iOS and macOS CMake helpers, a test project template). Deepest first, so a
+# parent emptied by removing its children goes too.
+file(GLOB_RECURSE _qt_dirs LIST_DIRECTORIES true "${CURRENT_PACKAGES_DIR}/*")
+list(SORT _qt_dirs ORDER DESCENDING)
+foreach(_dir IN LISTS _qt_dirs)
+    if(IS_DIRECTORY "${_dir}")
+        file(GLOB _children "${_dir}/*")
+        if(NOT _children)
+            file(REMOVE_RECURSE "${_dir}")
+        endif()
+    endif()
+endforeach()
 
 vcpkg_install_copyright(FILE_LIST "${QTBASE_SOURCE_PATH}/LICENSES/LGPL-3.0-only.txt")

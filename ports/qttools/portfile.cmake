@@ -80,6 +80,12 @@ vcpkg_cmake_configure(
         -DCMAKE_DISABLE_FIND_PACKAGE_Qt6AxContainer=ON
         ${FEATURE_OPTIONS}
         ${EXTRA_CONFIGURE_OPTIONS}
+    # Read only when qdoc or Assistant is built, or (ActiveQt) on Windows.
+    MAYBE_UNUSED_VARIABLES
+        CMAKE_DISABLE_FIND_PACKAGE_Clang
+        CMAKE_DISABLE_FIND_PACKAGE_litehtml
+        CMAKE_DISABLE_FIND_PACKAGE_Qt6AxContainer
+        CMAKE_REQUIRE_FIND_PACKAGE_Clang
 )
 
 vcpkg_cmake_install()
@@ -173,5 +179,11 @@ endif()
 if(EXISTS "${CURRENT_PACKAGES_DIR}/debug/lib/cmake")
     file(REMOVE_RECURSE "${CURRENT_PACKAGES_DIR}/debug/lib/cmake")
 endif()
+
+# Qt6Config.cmake finds this port's packages (Qt6Linguist, Qt6LinguistTools
+# and the rest) beside itself in lib/cmake, which is where qtbase keeps them;
+# see the same note in the qtbase port.
+set(VCPKG_POLICY_SKIP_MISPLACED_CMAKE_FILES_CHECK enabled)
+set(VCPKG_POLICY_SKIP_LIB_CMAKE_MERGE_CHECK enabled)
 
 vcpkg_install_copyright(FILE_LIST "${SOURCE_PATH}/LICENSES/GPL-3.0-only.txt")

@@ -2,7 +2,7 @@
   "$comment": "Qt 6.4.2 Base with selectable features (defaults off). Static linking preferred. qtsvg integrated via the svg feature.",
   "name": "qtbase",
   "version": "6.4.2",
-  "port-version": 25,
+  "port-version": 26,
   "description": "Qt Application Framework Base Module",
   "homepage": "https://www.qt.io/",
   "license": "LGPL-3.0-only",

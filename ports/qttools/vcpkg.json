@@ -1,7 +1,7 @@
 {
   "name": "qttools",
   "version": "6.4.2",
-  "port-version": 0,
+  "port-version": 1,
   "description": "Qt Tools 6.4.2 for the registry's qtbase: lrelease, lupdate and lconvert by default (HobbyCAD compiles its translation catalogs with lrelease); Linguist, Designer, Assistant and the rest behind features. From claudeqt-vcpkg's qttools 6.4.2#8 minus its host dependency on itself: that pulled a second, dynamic qtbase for the host triplet (which fails on x64-windows), and the build tools this port needs come from the target qtbase when host and target share an architecture.",
   "homepage": "https://www.qt.io/",
   "license": null,

@@ -31,12 +31,17 @@ vcpkg_cmake_configure(
         -DOPENMESH_BUILD_SHARED=${BUILD_SHARED}
         -DOPENMESH_DOCS=OFF
         -DOPENMESH_BUILD_UNIT_TESTS=OFF
+    # OpenMesh reads this only on Windows; elsewhere it builds both kinds.
+    MAYBE_UNUSED_VARIABLES
+        OPENMESH_BUILD_SHARED
 )
 
 vcpkg_cmake_install()
 
-# OpenMesh may not install CMake config files for debug builds
-if(NOT EXISTS "${CURRENT_PACKAGES_DIR}/debug/lib/cmake/OpenMesh")
+# OpenMesh may not install CMake config files for debug builds. Only a
+# triplet that builds debug needs the stand-in; in a release-only build it
+# was left behind as an empty directory.
+if(NOT VCPKG_BUILD_TYPE AND NOT EXISTS "${CURRENT_PACKAGES_DIR}/debug/lib/cmake/OpenMesh")
     file(MAKE_DIRECTORY "${CURRENT_PACKAGES_DIR}/debug/lib/cmake/OpenMesh")
 endif()
 
@@ -55,5 +60,13 @@ vcpkg_fixup_pkgconfig()
 
 file(REMOVE_RECURSE "${CURRENT_PACKAGES_DIR}/debug/include")
 file(REMOVE_RECURSE "${CURRENT_PACKAGES_DIR}/debug/share")
+file(REMOVE_RECURSE "${CURRENT_PACKAGES_DIR}/debug/lib/cmake")
+
+# The VDPM viewer's icon directory is installed even with the apps off, and
+# empty.
+file(GLOB _vdpm_xpm "${CURRENT_PACKAGES_DIR}/include/OpenMesh/Tools/VDPM/xpm/*")
+if(NOT _vdpm_xpm)
+    file(REMOVE_RECURSE "${CURRENT_PACKAGES_DIR}/include/OpenMesh/Tools/VDPM/xpm")
+endif()
 
 vcpkg_install_copyright(FILE_LIST "${SOURCE_PATH}/LICENSE")
